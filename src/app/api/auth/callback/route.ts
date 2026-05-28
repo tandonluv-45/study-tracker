@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/auth/callback";
+  const origin = request.nextUrl.origin;
+  const redirectUri = `${origin}/api/auth/callback`;
 
   if (!clientId || !clientSecret) {
     return NextResponse.redirect(new URL("/?error=missing_config", request.url));
