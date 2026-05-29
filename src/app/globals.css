@@ -54,23 +54,3 @@ body {
 .timer-pulse {
   animation: timer-pulse 1s ease-in-out infinite;
 }
-
-/* Mobile bottom nav */
-@media (max-width: 768px) {
-  .desktop-sidebar {
-    display: none;
-  }
-  .mobile-nav {
-    display: flex;
-  }
-  .main-content {
-    margin-left: 0 !important;
-    padding-bottom: 5rem;
-  }
-}
-
-@media (min-width: 769px) {
-  .mobile-nav {
-    display: none;
-  }
-}

@@ -8,8 +8,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Luv's Tracker",
-  description: "3rd Year Monthly Tracker — June 2026 → May 2027",
+  title: "Tracker",
+  description: "Study roadmap, tasks, expenses & more",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

@@ -17,7 +17,6 @@ const navItems = [
   { id: "expenses", label: "Expenses", icon: Wallet },
 ];
 
-// Bottom nav shows only 5 items on mobile
 const mobileNavItems = [
   { id: "dashboard", label: "Home", icon: LayoutDashboard },
   { id: "tasks", label: "Tasks", icon: ClipboardList },
@@ -37,9 +36,9 @@ export default function Sidebar({ activeTab, onTabChange, user }: SidebarProps) 
 
   return (
     <>
-      {/* Desktop sidebar */}
+      {/* ===== DESKTOP SIDEBAR (hidden on mobile) ===== */}
       <aside
-        className={`desktop-sidebar fixed left-0 top-0 h-full bg-surface border-r border-border z-40 flex flex-col transition-all duration-300 ${
+        className={`hidden md:flex fixed left-0 top-0 h-full bg-surface border-r border-border z-40 flex-col transition-all duration-300 ${
           collapsed ? "w-[68px]" : "w-[220px]"
         }`}
       >
@@ -106,17 +105,17 @@ export default function Sidebar({ activeTab, onTabChange, user }: SidebarProps) 
         </div>
       </aside>
 
-      {/* Mobile top bar */}
-      <div className="mobile-nav fixed top-0 left-0 right-0 h-14 bg-surface border-b border-border z-50 flex items-center justify-between px-4">
+      {/* ===== MOBILE TOP BAR (hidden on desktop) ===== */}
+      <div className="flex md:hidden fixed top-0 left-0 right-0 h-14 bg-surface border-b border-border z-50 items-center justify-between px-4">
         <h1 className="text-lg font-bold text-accent">Tracker</h1>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 rounded-lg hover:bg-surface-hover text-text-muted">
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
-      {/* Mobile full menu overlay */}
+      {/* ===== MOBILE FULL MENU OVERLAY ===== */}
       {mobileOpen && (
-        <div className="mobile-nav fixed inset-0 bg-bg/95 z-40 pt-16 px-4 animate-fade-in">
+        <div className="flex md:hidden fixed inset-0 bg-bg/95 z-40 pt-16 px-4 flex-col animate-fade-in">
           <nav className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -159,8 +158,8 @@ export default function Sidebar({ activeTab, onTabChange, user }: SidebarProps) 
         </div>
       )}
 
-      {/* Mobile bottom nav bar */}
-      <nav className="mobile-nav fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border z-50 flex items-center justify-around px-2">
+      {/* ===== MOBILE BOTTOM NAV BAR (hidden on desktop) ===== */}
+      <nav className="flex md:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border z-50 items-center justify-around px-2">
         {mobileNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;

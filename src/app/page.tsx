@@ -66,7 +66,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} user={user} />
-      <main className="main-content flex-1 ml-[220px] p-4 sm:p-8 max-w-5xl pt-[72px] md:pt-8">
+      <main className="flex-1 ml-0 md:ml-[220px] p-4 sm:p-8 max-w-5xl pt-[72px] md:pt-8 pb-20 md:pb-8">
         {renderContent()}
       </main>
     </div>
