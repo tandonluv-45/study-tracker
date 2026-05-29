@@ -59,12 +59,12 @@ export default function PomodoroTimer() {
     <div className="animate-fade-in">
       <h2 className="text-xl font-bold mb-6">Pomodoro Timer</h2>
       <div className="max-w-md mx-auto">
-        <div className="flex gap-2 mb-8 justify-center">
+        <div className="flex gap-1.5 sm:gap-2 mb-8 justify-center">
           {(["work", "break", "longBreak"] as TimerMode[]).map((m) => (
             <button key={m} onClick={() => switchMode(m)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 mode === m ? "bg-accent-muted text-accent" : "text-text-muted hover:text-text hover:bg-surface-hover"}`}>
-              {m === "work" ? <Brain size={14} className="inline mr-1.5" /> : <Coffee size={14} className="inline mr-1.5" />}
+              {m === "work" ? <Brain size={14} className="inline mr-1" /> : <Coffee size={14} className="inline mr-1" />}
               {MODE_LABELS[m]}
             </button>
           ))}

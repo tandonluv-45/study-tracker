@@ -84,15 +84,15 @@ export default function Timetable() {
                 <h3 className="text-sm font-semibold text-text-muted mb-2">{day}</h3>
                 <div className="space-y-2">
                   {daySlots.map((slot) => (
-                    <div key={slot.id} className={`flex items-center gap-4 px-4 py-3 rounded-xl border-l-2 ${typeColors[slot.type]} bg-surface border border-border`}>
-                      <div className="text-sm font-mono text-text-muted min-w-[100px]">{slot.startTime} - {slot.endTime}</div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{slot.subject}</p>
+                    <div key={slot.id} className={`flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-4 px-3 sm:px-4 py-3 rounded-xl border-l-2 ${typeColors[slot.type]} bg-surface border border-border`}>
+                      <div className="text-xs sm:text-sm font-mono text-text-muted min-w-[90px]">{slot.startTime} - {slot.endTime}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{slot.subject}</p>
                         {slot.room && <p className="text-xs text-text-muted">Room: {slot.room}</p>}
                       </div>
                       <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70">{slot.type}</span>
                       <button onClick={() => handleDelete(slot.id)}
-                        className="p-1 rounded hover:bg-red-muted text-text-dim hover:text-red transition-colors"><Trash2 size={14} /></button>
+                        className="p-1 rounded hover:bg-red-muted text-text-dim hover:text-red transition-colors shrink-0"><Trash2 size={14} /></button>
                     </div>
                   ))}
                 </div>

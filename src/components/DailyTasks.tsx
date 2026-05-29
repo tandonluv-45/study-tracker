@@ -76,37 +76,39 @@ export default function DailyTasks() {
       {showFuture && (
         <div className="bg-surface border border-border rounded-xl p-4 mb-5 animate-fade-in">
           <h3 className="text-sm font-semibold mb-3">Schedule a Future Task</h3>
-          <div className="flex gap-3">
+          <div className="grid grid-cols-1 sm:flex gap-3">
             <input type="date" value={futureDate} onChange={(e) => setFutureDate(e.target.value)}
               min={format(addDays(new Date(), 1), "yyyy-MM-dd")}
               className="bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-accent" />
             <input type="text" value={futureTitle} onChange={(e) => setFutureTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddFutureTask()} placeholder="Task description..."
-              className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent" />
+              className="sm:flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent" />
             <button onClick={handleAddFutureTask}
               className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg text-sm font-medium transition-colors">Add</button>
           </div>
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button onClick={() => goToDate(-1)} className="p-1.5 rounded-lg hover:bg-surface-hover text-text-muted hover:text-text">
             <ChevronLeft size={18} />
           </button>
-          <div className="text-center min-w-[140px]">
+          <div className="text-center min-w-[120px] sm:min-w-[140px]">
             <p className="text-sm font-medium">{isToday ? "Today" : format(new Date(selectedDate), "EEEE")}</p>
-            <p className="text-xs text-text-muted">{format(new Date(selectedDate), "MMMM d, yyyy")}</p>
+            <p className="text-xs text-text-muted">{format(new Date(selectedDate), "MMM d, yyyy")}</p>
           </div>
           <button onClick={() => goToDate(1)} className="p-1.5 rounded-lg hover:bg-surface-hover text-text-muted hover:text-text">
             <ChevronRight size={18} />
           </button>
         </div>
-        {!isToday && (
-          <button onClick={() => setSelectedDate(format(new Date(), "yyyy-MM-dd"))}
-            className="text-xs text-accent hover:text-accent-hover font-medium">Go to Today</button>
-        )}
-        <div className="text-sm text-text-muted">{completedCount}/{tasks.length} done</div>
+        <div className="flex items-center gap-3">
+          {!isToday && (
+            <button onClick={() => setSelectedDate(format(new Date(), "yyyy-MM-dd"))}
+              className="text-xs text-accent hover:text-accent-hover font-medium">Today</button>
+          )}
+          <div className="text-sm text-text-muted">{completedCount}/{tasks.length} done</div>
+        </div>
       </div>
 
       {tasks.length > 0 && (
@@ -116,22 +118,24 @@ export default function DailyTasks() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-4">
+      <div className="space-y-2 sm:space-y-0 sm:flex sm:gap-2 mb-4">
         <input type="text" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAddTask()} placeholder="Add a new task..."
-          className="flex-1 bg-surface border border-border rounded-lg px-4 py-2.5 text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent transition-colors" />
-        <select value={newTaskCategory} onChange={(e) => setNewTaskCategory(e.target.value as Task["category"])}
-          className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-muted focus:outline-none focus:border-accent">
-          <option value="daily">Daily</option><option value="roadmap">Roadmap</option>
-          <option value="assignment">Assignment</option><option value="custom">Custom</option>
-        </select>
-        <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value as Task["priority"])}
-          className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-muted focus:outline-none focus:border-accent">
-          <option value="low">Low</option><option value="medium">Med</option><option value="high">High</option>
-        </select>
-        <button onClick={handleAddTask} className="p-2.5 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors">
-          <Plus size={18} />
-        </button>
+          className="w-full sm:flex-1 bg-surface border border-border rounded-lg px-4 py-2.5 text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent transition-colors" />
+        <div className="flex gap-2">
+          <select value={newTaskCategory} onChange={(e) => setNewTaskCategory(e.target.value as Task["category"])}
+            className="flex-1 sm:flex-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-muted focus:outline-none focus:border-accent">
+            <option value="daily">Daily</option><option value="roadmap">Roadmap</option>
+            <option value="assignment">Assignment</option><option value="custom">Custom</option>
+          </select>
+          <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value as Task["priority"])}
+            className="flex-1 sm:flex-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-muted focus:outline-none focus:border-accent">
+            <option value="low">Low</option><option value="medium">Med</option><option value="high">High</option>
+          </select>
+          <button onClick={handleAddTask} className="p-2.5 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors shrink-0">
+            <Plus size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-2">

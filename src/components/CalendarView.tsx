@@ -64,13 +64,13 @@ export default function CalendarView() {
         const dayEvents = events.filter((e) => isSameDay(new Date(e.start), d));
         week.push(
           <button key={dateStr} onClick={() => setSelectedDate(d)}
-            className={`relative p-2 min-h-[80px] text-left rounded-lg border transition-all ${
+            className={`relative p-1 sm:p-2 min-h-[48px] sm:min-h-[80px] text-left rounded-lg border transition-all ${
               isSameDay(d, selectedDate) ? "border-accent bg-accent-muted" : "border-transparent hover:bg-surface-hover"
             } ${!isSameMonth(d, currentMonth) ? "opacity-30" : ""}`}>
-            <span className={`text-xs font-medium ${isSameDay(d, new Date()) ? "bg-accent text-white w-6 h-6 rounded-full flex items-center justify-center" : "text-text-muted"}`}>
+            <span className={`text-[11px] sm:text-xs font-medium ${isSameDay(d, new Date()) ? "bg-accent text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs" : "text-text-muted"}`}>
               {format(d, "d")}
             </span>
-            <div className="mt-1 space-y-0.5">
+            <div className="mt-0.5 sm:mt-1 space-y-0.5 hidden sm:block">
               {dayTasks.slice(0, 2).map((t) => (
                 <div key={t.id} className={`text-[10px] px-1 py-0.5 rounded truncate ${t.completed ? "bg-green-muted text-green" : "bg-accent-muted text-accent"}`}>{t.title}</div>
               ))}
@@ -79,6 +79,12 @@ export default function CalendarView() {
               ))}
               {dayTasks.length + dayEvents.length > 4 && <span className="text-[10px] text-text-dim">+{dayTasks.length + dayEvents.length - 4} more</span>}
             </div>
+            {(dayTasks.length > 0 || dayEvents.length > 0) && (
+              <div className="flex gap-0.5 mt-0.5 sm:hidden justify-center">
+                {dayTasks.length > 0 && <div className="w-1 h-1 rounded-full bg-accent" />}
+                {dayEvents.length > 0 && <div className="w-1 h-1 rounded-full bg-blue" />}
+              </div>
+            )}
           </button>
         );
         day = addDays(day, 1);
