@@ -198,6 +198,30 @@ export async function deleteIncome(id: string): Promise<void> {
   await fetch(`${BASE}/api/incomes?id=${id}`, { method: "DELETE" });
 }
 
+// User Roadmap (custom goals for non-owner users)
+export interface UserRoadmapMonth {
+  id: string;
+  monthIndex: number;
+  month: string;
+  theme: string;
+  goals: string[];
+}
+
+export async function fetchUserRoadmap(): Promise<UserRoadmapMonth[]> {
+  const res = await fetch(`${BASE}/api/roadmap`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function saveUserRoadmap(month: string, theme: string, goals: string[]): Promise<UserRoadmapMonth> {
+  const res = await fetch(`${BASE}/api/roadmap`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ month, theme, goals }),
+  });
+  return res.json();
+}
+
 // Init DB
 export async function initDatabase(): Promise<void> {
   await fetch(`${BASE}/api/init`, { method: "POST" });

@@ -59,3 +59,18 @@ body {
 .timer-pulse {
   animation: timer-pulse 1s ease-in-out infinite;
 }
+
+/* Responsive layout fallback — guarantees mobile/desktop behavior
+   even on browsers with incomplete CSS @layer support. Tailwind v4
+   wraps all utilities in @layer, which some mobile browsers ignore. */
+[data-sidebar="desktop"] { display: none !important; }
+[data-sidebar="mobile-top"],
+[data-sidebar="mobile-bottom"] { display: flex !important; }
+[data-layout="main"] { margin-left: 0 !important; padding-top: 72px !important; padding-bottom: 5rem !important; min-width: 0 !important; overflow-x: hidden !important; }
+
+@media (min-width: 768px) {
+  [data-sidebar="desktop"] { display: flex !important; }
+  [data-sidebar="mobile-top"],
+  [data-sidebar="mobile-bottom"] { display: none !important; }
+  [data-layout="main"] { margin-left: 220px !important; padding-top: 2rem !important; padding-bottom: 2rem !important; }
+}

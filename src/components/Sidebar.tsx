@@ -38,6 +38,7 @@ export default function Sidebar({ activeTab, onTabChange, user }: SidebarProps) 
     <>
       {/* ===== DESKTOP SIDEBAR (hidden on mobile) ===== */}
       <aside
+        data-sidebar="desktop"
         className={`hidden md:flex fixed left-0 top-0 h-full bg-surface border-r border-border z-40 flex-col transition-all duration-300 ${
           collapsed ? "w-[68px]" : "w-[220px]"
         }`}
@@ -106,7 +107,7 @@ export default function Sidebar({ activeTab, onTabChange, user }: SidebarProps) 
       </aside>
 
       {/* ===== MOBILE TOP BAR (hidden on desktop) ===== */}
-      <div className="flex md:hidden fixed top-0 left-0 right-0 h-14 bg-surface border-b border-border z-50 items-center justify-between px-4">
+      <div data-sidebar="mobile-top" className="flex md:hidden fixed top-0 left-0 right-0 h-14 bg-surface border-b border-border z-50 items-center justify-between px-4">
         <h1 className="text-lg font-bold text-accent">Tracker</h1>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 rounded-lg hover:bg-surface-hover text-text-muted">
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -115,7 +116,7 @@ export default function Sidebar({ activeTab, onTabChange, user }: SidebarProps) 
 
       {/* ===== MOBILE FULL MENU OVERLAY ===== */}
       {mobileOpen && (
-        <div className="flex md:hidden fixed inset-0 bg-bg/95 z-40 pt-16 px-4 flex-col animate-fade-in">
+        <div data-sidebar="mobile-overlay" className="flex md:hidden fixed inset-0 bg-bg/95 z-40 pt-16 px-4 flex-col animate-fade-in">
           <nav className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -159,7 +160,7 @@ export default function Sidebar({ activeTab, onTabChange, user }: SidebarProps) 
       )}
 
       {/* ===== MOBILE BOTTOM NAV BAR (hidden on desktop) ===== */}
-      <nav className="flex md:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border z-50 items-center justify-around px-2">
+      <nav data-sidebar="mobile-bottom" className="flex md:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border z-50 items-center justify-around px-2">
         {mobileNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;

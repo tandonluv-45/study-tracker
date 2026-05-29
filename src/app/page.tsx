@@ -47,7 +47,7 @@ export default function Home() {
       case "dashboard":
         return <Dashboard onNavigate={setActiveTab} user={user} />;
       case "goals":
-        return <MonthlyGoals />;
+        return <MonthlyGoals user={user} />;
       case "tasks":
         return <DailyTasks />;
       case "pomodoro":
@@ -64,9 +64,9 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen overflow-x-hidden">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} user={user} />
-      <main className="flex-1 ml-0 md:ml-[220px] p-4 sm:p-8 max-w-5xl pt-[72px] md:pt-8 pb-20 md:pb-8">
+      <main data-layout="main" className="flex-1 min-w-0 overflow-x-hidden ml-0 md:ml-[220px] p-4 sm:p-8 max-w-5xl pt-[72px] md:pt-8 pb-20 md:pb-8">
         {renderContent()}
       </main>
     </div>
