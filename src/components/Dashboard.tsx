@@ -80,61 +80,62 @@ export default function Dashboard({ onNavigate, user }: DashboardProps) {
   };
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold mb-1">Good {greeting}, {displayName}</h1>
-        <p className="text-sm text-text-muted">
-          {format(new Date(), "EEEE, MMMM d, yyyy")} &middot; {currentMonth.theme}
-          <span className={`ml-2 text-xs font-semibold px-2 py-0.5 rounded-md ${phaseColors[currentMonth.phase] || "bg-accent-muted text-accent"}`}>
+    <div className="animate-fade-in space-y-5 sm:space-y-6 min-w-0 w-full overflow-hidden">
+      {/* Greeting */}
+      <div className="min-w-0">
+        <h1 className="text-xl sm:text-2xl font-bold mb-1">Good {greeting}, {displayName}</h1>
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <p className="text-xs sm:text-sm text-text-muted">
+            {format(new Date(), "EEE, MMM d, yyyy")} &middot; {currentMonth.theme}
+          </p>
+          <span className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-md ${phaseColors[currentMonth.phase] || "bg-accent-muted text-accent"}`}>
             {currentMonth.phase}
           </span>
-        </p>
+        </div>
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={<Target size={18} />} label="Month Progress" value={`${monthProgress}%`}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+        <StatCard icon={<Target size={16} />} label="Month" value={`${monthProgress}%`}
           sub={`${currentMonth.month} goals`} color="accent" onClick={() => onNavigate("goals")} />
-        <StatCard icon={<CheckCircle2 size={18} />} label="Today's Tasks" value={`${todayTasks.completed}/${todayTasks.total}`}
-          sub={todayTasks.total === 0 ? "No tasks yet" : "completed"} color="green" onClick={() => onNavigate("tasks")} />
-        <StatCard icon={<Clock size={18} />} label="Pomodoros Today" value={String(pomodoroToday)}
+        <StatCard icon={<CheckCircle2 size={16} />} label="Tasks" value={`${todayTasks.completed}/${todayTasks.total}`}
+          sub={todayTasks.total === 0 ? "No tasks" : "completed"} color="green" onClick={() => onNavigate("tasks")} />
+        <StatCard icon={<Clock size={16} />} label="Pomodoros" value={String(pomodoroToday)}
           sub={`${Math.round((pomodoroToday * 25) / 60 * 10) / 10}h focus`} color="amber" onClick={() => onNavigate("pomodoro")} />
-        <StatCard icon={<TrendingUp size={18} />} label="Overall Progress" value={`${overallProgress}%`}
+        <StatCard icon={<TrendingUp size={16} />} label="Overall" value={`${overallProgress}%`}
           sub="All months" color="blue" />
       </div>
 
       {/* Finance summary */}
       <button onClick={() => onNavigate("expenses")} className="w-full text-left">
-        <div className="bg-surface border border-border rounded-xl p-5 hover:border-border-light transition-all">
+        <div className="bg-surface border border-border rounded-xl p-4 sm:p-5 hover:border-border-light transition-all">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider">
-              This Month&apos;s Finances
-            </h3>
+            <h3 className="text-xs sm:text-sm font-semibold text-text-muted uppercase tracking-wider">Finances</h3>
             <span className="text-xs text-accent font-medium flex items-center gap-1">
-              View all <ArrowRight size={12} />
+              View <ArrowRight size={12} />
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <TrendingUp size={14} className="text-green" />
-                <span className="text-xs text-text-muted">Income</span>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1 mb-1">
+                <TrendingUp size={12} className="text-green shrink-0" />
+                <span className="text-[10px] sm:text-xs text-text-muted">Income</span>
               </div>
-              <p className="text-lg font-bold text-green">&#8377;{financials.income.toFixed(0)}</p>
+              <p className="text-sm sm:text-lg font-bold text-green truncate">&#8377;{financials.income.toFixed(0)}</p>
             </div>
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <TrendingDown size={14} className="text-red" />
-                <span className="text-xs text-text-muted">Spent</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1 mb-1">
+                <TrendingDown size={12} className="text-red shrink-0" />
+                <span className="text-[10px] sm:text-xs text-text-muted">Spent</span>
               </div>
-              <p className="text-lg font-bold text-red">&#8377;{financials.expenses.toFixed(0)}</p>
+              <p className="text-sm sm:text-lg font-bold text-red truncate">&#8377;{financials.expenses.toFixed(0)}</p>
             </div>
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <Wallet size={14} className={financials.balance >= 0 ? "text-green" : "text-red"} />
-                <span className="text-xs text-text-muted">Balance</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1 mb-1">
+                <Wallet size={12} className={`shrink-0 ${financials.balance >= 0 ? "text-green" : "text-red"}`} />
+                <span className="text-[10px] sm:text-xs text-text-muted">Balance</span>
               </div>
-              <p className={`text-lg font-bold ${financials.balance >= 0 ? "text-green" : "text-red"}`}>
+              <p className={`text-sm sm:text-lg font-bold truncate ${financials.balance >= 0 ? "text-green" : "text-red"}`}>
                 &#8377;{financials.balance.toFixed(0)}
               </p>
             </div>
@@ -144,12 +145,12 @@ export default function Dashboard({ onNavigate, user }: DashboardProps) {
 
       {/* Focus + Next month */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-surface border border-border rounded-xl p-5">
+        <div className="bg-surface border border-border rounded-xl p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider">This Month&apos;s Focus</h3>
+            <h3 className="text-xs sm:text-sm font-semibold text-text-muted uppercase tracking-wider">This Month</h3>
             <button onClick={() => onNavigate("goals")}
               className="text-xs text-accent hover:text-accent-hover font-medium flex items-center gap-1">
-              View all <ArrowRight size={12} />
+              Goals <ArrowRight size={12} />
             </button>
           </div>
           <div className="space-y-3 mb-4">
@@ -159,57 +160,59 @@ export default function Dashboard({ onNavigate, user }: DashboardProps) {
           </div>
           <div className="pt-3 border-t border-border">
             <p className="text-xs text-text-muted mb-1">Month-end goal:</p>
-            <p className="text-sm font-medium text-accent">{currentMonth.monthEndGoal}</p>
+            <p className="text-xs sm:text-sm font-medium text-accent">{currentMonth.monthEndGoal}</p>
           </div>
         </div>
 
         {nextMonth && (
-          <div className="bg-surface border border-border rounded-xl p-5">
+          <div className="bg-surface border border-border rounded-xl p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider">Coming Up: {nextMonth.month}</h3>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${phaseColors[nextMonth.phase] || "bg-accent-muted text-accent"}`}>
+              <h3 className="text-xs sm:text-sm font-semibold text-text-muted uppercase tracking-wider">Next: {nextMonth.month}</h3>
+              <span className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-md ${phaseColors[nextMonth.phase] || "bg-accent-muted text-accent"}`}>
                 {nextMonth.phase}
               </span>
             </div>
-            <p className="text-sm text-text mb-3">{nextMonth.theme}</p>
+            <p className="text-xs sm:text-sm text-text mb-3">{nextMonth.theme}</p>
             <div className="space-y-2">
-              {nextMonth.goals.slice(0, 5).map((goal, i) => (
+              {nextMonth.goals.slice(0, 4).map((goal, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <Circle size={8} className="text-text-dim mt-1.5 shrink-0" />
-                  <span className="text-sm text-text-muted">{goal}</span>
+                  <Circle size={6} className="text-text-dim mt-1.5 shrink-0" />
+                  <span className="text-xs sm:text-sm text-text-muted">{goal}</span>
                 </div>
               ))}
-              {nextMonth.goals.length > 5 && (
-                <p className="text-xs text-text-dim ml-4">+{nextMonth.goals.length - 5} more goals</p>
+              {nextMonth.goals.length > 4 && (
+                <p className="text-xs text-text-dim ml-4">+{nextMonth.goals.length - 4} more</p>
               )}
             </div>
             <div className="pt-3 mt-3 border-t border-border">
-              <p className="text-xs text-text-muted">{nextMonth.hrsPerWeek} hrs/week &middot; {nextMonth.monthEndGoal}</p>
+              <p className="text-xs text-text-muted">{nextMonth.hrsPerWeek} hrs/week</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Year overview */}
-      <div className="bg-surface border border-border rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-4">Year Overview</h3>
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {roadmap.map((m) => {
-            const mKey = `${m.shortMonth}-${m.year}`;
-            const isCurrent = mKey === monthKey;
-            return (
-              <button key={mKey} onClick={() => onNavigate("goals")}
-                className={`shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
-                  isCurrent ? "bg-accent-muted border border-accent" : "hover:bg-surface-hover border border-transparent"
-                }`}>
-                <span className={`text-xs font-semibold ${isCurrent ? "text-accent" : "text-text-muted"}`}>{m.shortMonth}</span>
-                <div className="w-8 h-8 rounded-full border-2 border-border flex items-center justify-center">
-                  <span className="text-[10px] font-bold">{monthProgresses[mKey] || 0}%</span>
-                </div>
-                <span className="text-[9px] text-text-dim">{m.phase}</span>
-              </button>
-            );
-          })}
+      {/* Year overview - contained scrollable */}
+      <div className="bg-surface border border-border rounded-xl p-4 sm:p-5 min-w-0">
+        <h3 className="text-xs sm:text-sm font-semibold text-text-muted uppercase tracking-wider mb-4">Year Overview</h3>
+        <div className="overflow-x-auto -mx-4 px-4 sm:-mx-5 sm:px-5">
+          <div className="flex gap-1.5 sm:gap-2 pb-2 min-w-max">
+            {roadmap.map((m) => {
+              const mKey = `${m.shortMonth}-${m.year}`;
+              const isCurrent = mKey === monthKey;
+              return (
+                <button key={mKey} onClick={() => onNavigate("goals")}
+                  className={`shrink-0 flex flex-col items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all ${
+                    isCurrent ? "bg-accent-muted border border-accent" : "hover:bg-surface-hover border border-transparent"
+                  }`}>
+                  <span className={`text-[10px] sm:text-xs font-semibold ${isCurrent ? "text-accent" : "text-text-muted"}`}>{m.shortMonth}</span>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-border flex items-center justify-center">
+                    <span className="text-[9px] sm:text-[10px] font-bold">{monthProgresses[mKey] || 0}%</span>
+                  </div>
+                  <span className="text-[8px] sm:text-[9px] text-text-dim">{m.phase}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -231,24 +234,24 @@ function StatCard({ icon, label, value, sub, color, onClick }: {
     amber: "bg-amber-muted text-amber", blue: "bg-blue-muted text-blue",
   };
   return (
-    <button onClick={onClick} className="bg-surface border border-border rounded-xl p-3 sm:p-4 text-left hover:border-border-light transition-all group">
-      <div className="flex items-center gap-2 mb-2 sm:mb-3">
-        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center ${colorMap[color]}`}>{icon}</div>
-        <span className="text-[11px] sm:text-xs font-medium text-text-muted">{label}</span>
+    <button onClick={onClick} className="bg-surface border border-border rounded-xl p-3 text-left hover:border-border-light transition-all min-w-0">
+      <div className="flex items-center gap-1.5 mb-2">
+        <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0 ${colorMap[color]}`}>{icon}</div>
+        <span className="text-[10px] sm:text-xs font-medium text-text-muted truncate">{label}</span>
       </div>
-      <p className="text-xl sm:text-2xl font-bold">{value}</p>
-      <p className="text-[11px] sm:text-xs text-text-dim mt-0.5">{sub}</p>
+      <p className="text-lg sm:text-xl font-bold">{value}</p>
+      <p className="text-[10px] sm:text-xs text-text-dim mt-0.5 truncate">{sub}</p>
     </button>
   );
 }
 
 function FocusItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 text-text-dim">{icon}</div>
-      <div>
-        <span className="text-xs font-semibold text-text-muted">{label}</span>
-        <p className="text-sm">{value}</p>
+    <div className="flex items-start gap-2 sm:gap-3">
+      <div className="mt-0.5 text-text-dim shrink-0">{icon}</div>
+      <div className="min-w-0">
+        <span className="text-[10px] sm:text-xs font-semibold text-text-muted">{label}</span>
+        <p className="text-xs sm:text-sm break-words">{value}</p>
       </div>
     </div>
   );
