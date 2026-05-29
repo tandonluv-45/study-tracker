@@ -1,4 +1,4 @@
-// Client-side API helpers — replaces direct localStorage calls
+// Client-side API helpers
 
 export interface Task {
   id: string;
@@ -36,12 +36,50 @@ export interface PomodoroSession {
   label?: string;
 }
 
+export interface Expense {
+  id: string;
+  title: string;
+  amount: number;
+  date: string;
+  category: string;
+  createdAt: string;
+}
+
+export interface Income {
+  id: string;
+  title: string;
+  amount: number;
+  date: string;
+  createdAt: string;
+}
+
+export interface UserSession {
+  id: string;
+  email: string;
+  name: string;
+  picture?: string;
+  isOwner: boolean;
+}
+
 const BASE = "";
+
+// Auth
+export async function getSessionUser(): Promise<UserSession | null> {
+  try {
+    const res = await fetch(`${BASE}/api/auth/session`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.user;
+  } catch {
+    return null;
+  }
+}
 
 // Tasks
 export async function fetchTasks(date?: string): Promise<Task[]> {
   const url = date ? `${BASE}/api/tasks?date=${date}` : `${BASE}/api/tasks`;
   const res = await fetch(url);
+  if (!res.ok) return [];
   return res.json();
 }
 
@@ -69,6 +107,7 @@ export async function deleteTask(id: string): Promise<void> {
 // Goals
 export async function fetchGoals(): Promise<GoalCompletion[]> {
   const res = await fetch(`${BASE}/api/goals`);
+  if (!res.ok) return [];
   return res.json();
 }
 
@@ -84,6 +123,7 @@ export async function toggleGoal(monthKey: string, goalIndex: number): Promise<{
 // Timetable
 export async function fetchTimetable(): Promise<TimetableSlot[]> {
   const res = await fetch(`${BASE}/api/timetable`);
+  if (!res.ok) return [];
   return res.json();
 }
 
@@ -104,6 +144,7 @@ export async function deleteTimetableSlot(id: string): Promise<void> {
 export async function fetchPomodoro(date?: string): Promise<PomodoroSession[]> {
   const url = date ? `${BASE}/api/pomodoro?date=${date}` : `${BASE}/api/pomodoro`;
   const res = await fetch(url);
+  if (!res.ok) return [];
   return res.json();
 }
 
@@ -113,6 +154,48 @@ export async function createPomodoro(session: Omit<PomodoroSession, "id">): Prom
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(session),
   });
+}
+
+// Expenses
+export async function fetchExpenses(month?: string): Promise<Expense[]> {
+  const url = month ? `${BASE}/api/expenses?month=${month}` : `${BASE}/api/expenses`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function createExpense(expense: Omit<Expense, "id" | "createdAt">): Promise<Expense> {
+  const res = await fetch(`${BASE}/api/expenses`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(expense),
+  });
+  return res.json();
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  await fetch(`${BASE}/api/expenses?id=${id}`, { method: "DELETE" });
+}
+
+// Incomes
+export async function fetchIncomes(month?: string): Promise<Income[]> {
+  const url = month ? `${BASE}/api/incomes?month=${month}` : `${BASE}/api/incomes`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function createIncome(income: Omit<Income, "id" | "createdAt">): Promise<Income> {
+  const res = await fetch(`${BASE}/api/incomes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(income),
+  });
+  return res.json();
+}
+
+export async function deleteIncome(id: string): Promise<void> {
+  await fetch(`${BASE}/api/incomes?id=${id}`, { method: "DELETE" });
 }
 
 // Init DB

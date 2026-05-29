@@ -46,7 +46,7 @@ export default function CalendarView() {
     fetchTasks().then((all) => setTasks(all.filter((t) => t.date >= start && t.date <= end)));
   }, [currentMonth]);
 
-  const handleConnect = () => { window.location.href = "/api/auth/google"; };
+  const handleConnect = () => { window.location.href = "/api/auth/google?mode=calendar"; };
   const handleDisconnect = () => { localStorage.removeItem("google_access_token"); localStorage.removeItem("google_refresh_token"); setIsConnected(false); setEvents([]); };
 
   const renderDays = () => {
