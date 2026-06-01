@@ -2,8 +2,8 @@
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "linear-gradient(135deg, #FEFEFE 0%, #E0E7D7 50%, #EDECEC 100%)" }}>
-      <div className="bg-white rounded-2xl shadow-lg border border-border p-8 sm:p-12 max-w-md w-full text-center">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-bg">
+      <div className="bg-surface rounded-2xl shadow-lg border border-border p-8 sm:p-12 max-w-md w-full text-center">
         <div className="w-16 h-16 rounded-2xl bg-accent-muted flex items-center justify-center mx-auto mb-6">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
             <path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-4" />

@@ -32,6 +32,34 @@
   --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
+/* Dark theme overrides */
+[data-theme="dark"] {
+  --color-bg: #121212;
+  --color-surface: #1E1E1E;
+  --color-surface-hover: #2A2A2A;
+  --color-border: #333333;
+  --color-border-light: #444444;
+  --color-text: #E8E8E8;
+  --color-text-muted: #A0A0A0;
+  --color-text-dim: #707070;
+  --color-accent: #9AB87A;
+  --color-accent-hover: #AACA8E;
+  --color-accent-muted: rgba(154, 184, 122, 0.2);
+  --color-green: #8BBF6A;
+  --color-green-muted: rgba(139, 191, 106, 0.15);
+  --color-amber: #D4AD7A;
+  --color-amber-muted: rgba(212, 173, 122, 0.15);
+  --color-red: #E08A8A;
+  --color-red-muted: rgba(224, 138, 138, 0.15);
+  --color-blue: #96ADBE;
+  --color-blue-muted: rgba(150, 173, 190, 0.15);
+  --color-rose: #D4B5AA;
+  --color-rose-muted: rgba(212, 181, 170, 0.15);
+  --color-sage: #C8D4A6;
+  --color-sage-muted: rgba(200, 212, 166, 0.15);
+  color-scheme: dark;
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-light) transparent;
@@ -40,6 +68,7 @@
 body {
   background: var(--color-bg);
   color: var(--color-text);
+  transition: background-color 0.3s, color 0.3s;
 }
 
 @keyframes fade-in {

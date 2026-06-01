@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { UserSession } from "@/lib/api";
+import ThemeToggle from "./ThemeToggle";
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -94,6 +95,7 @@ export default function Sidebar({ activeTab, onTabChange, user }: SidebarProps) 
               </div>
             </div>
           )}
+          <ThemeToggle collapsed={collapsed} />
           <a
             href="/api/auth/logout"
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:bg-surface-hover hover:text-red transition-colors ${
@@ -135,27 +137,32 @@ export default function Sidebar({ activeTab, onTabChange, user }: SidebarProps) 
               );
             })}
           </nav>
-          {user && (
-            <div className="mt-6 pt-4 border-t border-border">
-              <div className="flex items-center gap-3 px-4 py-2">
-                {user.picture ? (
-                  <img src={user.picture} alt="" className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-accent-muted flex items-center justify-center text-sm font-bold text-accent">
-                    {user.name[0]}
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-text-dim">{user.email}</p>
-                </div>
-              </div>
-              <a href="/api/auth/logout"
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-text-muted hover:bg-surface-hover hover:text-red mt-2">
-                <LogOut size={20} /> Sign Out
-              </a>
+          <div className="mt-6 pt-4 border-t border-border">
+            <div className="px-1 mb-2">
+              <ThemeToggle />
             </div>
-          )}
+            {user && (
+              <>
+                <div className="flex items-center gap-3 px-4 py-2">
+                  {user.picture ? (
+                    <img src={user.picture} alt="" className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-accent-muted flex items-center justify-center text-sm font-bold text-accent">
+                      {user.name[0]}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-text-dim">{user.email}</p>
+                  </div>
+                </div>
+                <a href="/api/auth/logout"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-text-muted hover:bg-surface-hover hover:text-red mt-2">
+                  <LogOut size={20} /> Sign Out
+                </a>
+              </>
+            )}
+          </div>
         </div>
       )}
 
