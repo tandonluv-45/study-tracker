@@ -20,6 +20,10 @@ interface PomodoroState {
   toggleRunning: () => void;
   reset: () => void;
   switchMode: (m: TimerMode) => void;
+  openPiP: (() => void) | null;
+  isPiPSupported: boolean;
+  setOpenPiP: (fn: (() => void) | null) => void;
+  setIsPiPSupported: (v: boolean) => void;
 }
 
 const PomodoroContext = createContext<PomodoroState | null>(null);
@@ -40,7 +44,12 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [sessionsToday, setSessionsToday] = useState(0);
   const [sessionCount, setSessionCount] = useState(0);
   const [label, setLabel] = useState("");
+  const [openPiP, setOpenPiPState] = useState<(() => void) | null>(null);
+  const [isPiPSupported, setIsPiPSupported] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const setOpenPiP = useCallback((fn: (() => void) | null) => setOpenPiPState(() => fn), []);
+
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -84,7 +93,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const toggleRunning = useCallback(() => setIsRunning((r) => !r), []);
 
   return (
-    <PomodoroContext.Provider value={{ mode, timeLeft, isRunning, sessionsToday, sessionCount, label, setLabel, toggleRunning, reset, switchMode }}>
+    <PomodoroContext.Provider value={{ mode, timeLeft, isRunning, sessionsToday, sessionCount, label, setLabel, toggleRunning, reset, switchMode, openPiP, isPiPSupported, setOpenPiP, setIsPiPSupported }}>
       {children}
     </PomodoroContext.Provider>
   );

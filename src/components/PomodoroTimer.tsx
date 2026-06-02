@@ -1,10 +1,10 @@
 "use client";
 
-import { Play, Pause, RotateCcw, Coffee, Brain } from "lucide-react";
+import { Play, Pause, RotateCcw, Coffee, Brain, PictureInPicture2 } from "lucide-react";
 import { usePomodoroContext, DURATIONS, MODE_LABELS, type TimerMode } from "@/lib/PomodoroContext";
 
 export default function PomodoroTimer() {
-  const { mode, timeLeft, isRunning, sessionsToday, sessionCount, label, setLabel, toggleRunning, reset, switchMode } = usePomodoroContext();
+  const { mode, timeLeft, isRunning, sessionsToday, sessionCount, label, setLabel, toggleRunning, reset, switchMode, openPiP, isPiPSupported } = usePomodoroContext();
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -50,7 +50,13 @@ export default function PomodoroTimer() {
             className="w-16 h-16 rounded-full bg-accent hover:bg-accent-hover text-white flex items-center justify-center transition-colors shadow-lg shadow-accent/20">
             {isRunning ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
           </button>
-          <div className="w-11" />
+          {isPiPSupported && openPiP ? (
+            <button onClick={openPiP} className="p-3 rounded-full hover:bg-surface-hover text-text-muted hover:text-text transition-colors" title="Pop out timer">
+              <PictureInPicture2 size={20} />
+            </button>
+          ) : (
+            <div className="w-11" />
+          )}
         </div>
 
         {mode === "work" && (

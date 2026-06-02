@@ -7,6 +7,7 @@ import MonthlyGoals from "@/components/MonthlyGoals";
 import DailyTasks from "@/components/DailyTasks";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import PomodoroMiniPlayer from "@/components/PomodoroMiniPlayer";
+import PomodoroPiPBridge from "@/components/PomodoroPiPBridge";
 import CalendarView from "@/components/CalendarView";
 import Timetable from "@/components/Timetable";
 import ExpenseTracker from "@/components/ExpenseTracker";
@@ -73,6 +74,7 @@ export default function Home() {
           {renderContent()}
         </main>
         {activeTab !== "pomodoro" && <PomodoroMiniPlayer onGoToPomodoro={() => setActiveTab("pomodoro")} />}
+        <PomodoroPiPBridge />
       </div>
     </PomodoroProvider>
   );

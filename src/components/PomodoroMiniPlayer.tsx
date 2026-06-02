@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, Pause, RotateCcw, Timer, X } from "lucide-react";
+import { Play, Pause, RotateCcw, PictureInPicture2, X } from "lucide-react";
 import { useState } from "react";
 import { usePomodoroContext, DURATIONS, MODE_LABELS } from "@/lib/PomodoroContext";
 
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function PomodoroMiniPlayer({ onGoToPomodoro }: Props) {
-  const { mode, timeLeft, isRunning, toggleRunning, reset } = usePomodoroContext();
+  const { mode, timeLeft, isRunning, toggleRunning, reset, openPiP, isPiPSupported } = usePomodoroContext();
   const [dismissed, setDismissed] = useState(false);
 
   if (dismissed || (!isRunning && timeLeft === DURATIONS[mode])) return null;
@@ -52,6 +52,13 @@ export default function PomodoroMiniPlayer({ onGoToPomodoro }: Props) {
             title="Reset">
             <RotateCcw size={14} />
           </button>
+          {isPiPSupported && openPiP && (
+            <button onClick={openPiP}
+              className="w-8 h-8 rounded-full hover:bg-surface-hover text-text-muted hover:text-text flex items-center justify-center transition-colors"
+              title="Pop out">
+              <PictureInPicture2 size={14} />
+            </button>
+          )}
           <button onClick={() => setDismissed(true)}
             className="w-6 h-6 rounded-full hover:bg-surface-hover text-text-dim hover:text-text-muted flex items-center justify-center transition-colors"
             title="Dismiss">
