@@ -1,54 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
 import { Play, Pause, RotateCcw, Coffee, Brain } from "lucide-react";
-import { createPomodoro, fetchPomodoro } from "@/lib/api";
-import { format } from "date-fns";
-
-type TimerMode = "work" | "break" | "longBreak";
-
-const DURATIONS: Record<TimerMode, number> = { work: 25 * 60, break: 5 * 60, longBreak: 15 * 60 };
-const MODE_LABELS: Record<TimerMode, string> = { work: "Focus", break: "Short Break", longBreak: "Long Break" };
+import { usePomodoroContext, DURATIONS, MODE_LABELS, type TimerMode } from "@/lib/PomodoroContext";
 
 export default function PomodoroTimer() {
-  const [mode, setMode] = useState<TimerMode>("work");
-  const [timeLeft, setTimeLeft] = useState(DURATIONS.work);
-  const [isRunning, setIsRunning] = useState(false);
-  const [sessionsToday, setSessionsToday] = useState(0);
-  const [sessionCount, setSessionCount] = useState(0);
-  const [label, setLabel] = useState("");
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const today = format(new Date(), "yyyy-MM-dd");
-
-  useEffect(() => {
-    fetchPomodoro(today).then((s) => setSessionsToday(s.length));
-  }, [today]);
-
-  const completeSession = useCallback(async () => {
-    if (mode === "work") {
-      await createPomodoro({ date: today, duration: 25, completedAt: new Date().toISOString(), label: label || undefined });
-      setSessionsToday((p) => p + 1);
-      const next = sessionCount + 1;
-      setSessionCount(next);
-      switchMode(next % 4 === 0 ? "longBreak" : "break");
-    } else {
-      switchMode("work");
-    }
-  }, [mode, today, label, sessionCount]);
-
-  useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      intervalRef.current = setInterval(() => setTimeLeft((t) => t - 1), 1000);
-    } else if (timeLeft === 0 && isRunning) {
-      setIsRunning(false);
-      completeSession();
-    }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning, timeLeft, completeSession]);
-
-  const switchMode = (newMode: TimerMode) => { setMode(newMode); setTimeLeft(DURATIONS[newMode]); setIsRunning(false); };
-  const reset = () => { setTimeLeft(DURATIONS[mode]); setIsRunning(false); };
+  const { mode, timeLeft, isRunning, sessionsToday, sessionCount, label, setLabel, toggleRunning, reset, switchMode } = usePomodoroContext();
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -90,7 +46,7 @@ export default function PomodoroTimer() {
           <button onClick={reset} className="p-3 rounded-full hover:bg-surface-hover text-text-muted hover:text-text transition-colors">
             <RotateCcw size={20} />
           </button>
-          <button onClick={() => setIsRunning(!isRunning)}
+          <button onClick={toggleRunning}
             className="w-16 h-16 rounded-full bg-accent hover:bg-accent-hover text-white flex items-center justify-center transition-colors shadow-lg shadow-accent/20">
             {isRunning ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
           </button>

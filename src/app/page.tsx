@@ -6,9 +6,11 @@ import Dashboard from "@/components/Dashboard";
 import MonthlyGoals from "@/components/MonthlyGoals";
 import DailyTasks from "@/components/DailyTasks";
 import PomodoroTimer from "@/components/PomodoroTimer";
+import PomodoroMiniPlayer from "@/components/PomodoroMiniPlayer";
 import CalendarView from "@/components/CalendarView";
 import Timetable from "@/components/Timetable";
 import ExpenseTracker from "@/components/ExpenseTracker";
+import { PomodoroProvider } from "@/lib/PomodoroContext";
 import { getSessionUser, type UserSession } from "@/lib/api";
 
 export default function Home() {
@@ -64,11 +66,14 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen overflow-x-hidden">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} user={user} />
-      <main data-layout="main" className="flex-1 min-w-0 overflow-x-hidden ml-0 md:ml-[220px] p-4 sm:p-8 max-w-5xl pt-[72px] md:pt-8 pb-20 md:pb-8">
-        {renderContent()}
-      </main>
-    </div>
+    <PomodoroProvider>
+      <div className="flex min-h-screen overflow-x-hidden">
+        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} user={user} />
+        <main data-layout="main" className="flex-1 min-w-0 overflow-x-hidden ml-0 md:ml-[220px] p-4 sm:p-8 max-w-5xl pt-[72px] md:pt-8 pb-20 md:pb-8">
+          {renderContent()}
+        </main>
+        {activeTab !== "pomodoro" && <PomodoroMiniPlayer onGoToPomodoro={() => setActiveTab("pomodoro")} />}
+      </div>
+    </PomodoroProvider>
   );
 }

@@ -89,6 +89,15 @@ body {
   animation: timer-pulse 1s ease-in-out infinite;
 }
 
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
 /* Responsive layout fallback — guarantees mobile/desktop behavior
    even on browsers with incomplete CSS @layer support. Tailwind v4
    wraps all utilities in @layer, which some mobile browsers ignore. */
