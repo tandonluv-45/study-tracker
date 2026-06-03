@@ -173,6 +173,14 @@ export async function createExpense(expense: Omit<Expense, "id" | "createdAt">):
   return res.json();
 }
 
+export async function updateExpense(id: string, updates: Omit<Expense, "id" | "createdAt">): Promise<void> {
+  await fetch(`${BASE}/api/expenses`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...updates }),
+  });
+}
+
 export async function deleteExpense(id: string): Promise<void> {
   await fetch(`${BASE}/api/expenses?id=${id}`, { method: "DELETE" });
 }
@@ -192,6 +200,14 @@ export async function createIncome(income: Omit<Income, "id" | "createdAt">): Pr
     body: JSON.stringify(income),
   });
   return res.json();
+}
+
+export async function updateIncome(id: string, updates: Omit<Income, "id" | "createdAt">): Promise<void> {
+  await fetch(`${BASE}/api/incomes`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...updates }),
+  });
 }
 
 export async function deleteIncome(id: string): Promise<void> {

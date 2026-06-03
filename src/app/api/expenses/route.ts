@@ -47,6 +47,22 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ id, ...body, createdAt });
 }
 
+export async function PUT(request: NextRequest) {
+  const user = await getSession();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  await initDB();
+
+  const body = await request.json();
+  if (!body.id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
+  await db.execute({
+    sql: "UPDATE expenses SET title = ?, amount = ?, date = ?, category = ? WHERE id = ? AND user_id = ?",
+    args: [body.title, body.amount, body.date, body.category || "other", body.id, user.id],
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(request: NextRequest) {
   const user = await getSession();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
