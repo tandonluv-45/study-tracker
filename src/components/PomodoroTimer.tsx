@@ -2,6 +2,7 @@
 
 import { Play, Pause, RotateCcw, Coffee, Brain, PictureInPicture2 } from "lucide-react";
 import { usePomodoroContext, DURATIONS, MODE_LABELS, type TimerMode } from "@/lib/PomodoroContext";
+import FocusLockSettings from "./FocusLockSettings";
 
 export default function PomodoroTimer() {
   const { mode, timeLeft, isRunning, sessionsToday, sessionCount, label, setLabel, toggleRunning, reset, switchMode, openPiP, isPiPSupported } = usePomodoroContext();
@@ -75,6 +76,8 @@ export default function PomodoroTimer() {
             <div><p className="text-2xl font-bold">{sessionCount % 4}/4</p><p className="text-xs text-text-muted">Until long break</p></div>
           </div>
         </div>
+
+        <FocusLockSettings />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { createPomodoro, fetchPomodoro } from "@/lib/api";
+import { armLockForFocus, stopLock } from "@/lib/focusLock";
 import { format } from "date-fns";
 
 type TimerMode = "work" | "break" | "longBreak";
@@ -84,6 +85,21 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isRunning, timeLeft, completeSession]);
+
+  // App-locker: lock distractions only while a work focus session is running
+  // (native Orbit app only; no-ops on the web).
+  useEffect(() => {
+    if (isRunning && mode === "work") {
+      armLockForFocus();
+    } else {
+      stopLock();
+    }
+  }, [isRunning, mode]);
+
+  // Safety: release the lock if the provider unmounts mid-session.
+  useEffect(() => {
+    return () => { stopLock(); };
+  }, []);
 
   const reset = useCallback(() => {
     setTimeLeft(DURATIONS[mode]);
