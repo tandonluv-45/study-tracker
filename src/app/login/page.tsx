@@ -1,9 +1,39 @@
 "use client";
 
+import { useState } from "react";
+
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Login failed");
+        setLoading(false);
+        return;
+      }
+      window.location.href = "/";
+    } catch {
+      setError("Network error — please try again");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-bg">
-      <div className="bg-surface rounded-2xl shadow-lg border border-border p-8 sm:p-12 max-w-md w-full text-center">
+      <div className="bg-surface rounded-2xl shadow-lg border border-border p-8 sm:p-10 max-w-md w-full text-center">
         <div className="w-16 h-16 rounded-2xl bg-accent-muted flex items-center justify-center mx-auto mb-6">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
             <path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-4" />
@@ -11,8 +41,44 @@ export default function LoginPage() {
         </div>
         <h1 className="text-2xl font-bold text-text mb-2">Welcome to Tracker</h1>
         <p className="text-text-muted text-sm mb-8">
-          Your personal study roadmap, task manager, expense tracker & more.
+          Your personal study roadmap, task manager, expense tracker &amp; more.
         </p>
+
+        <form onSubmit={handleSubmit} className="text-left space-y-3 mb-5">
+          <div>
+            <label className="text-xs font-medium text-text-muted">Email</label>
+            <input
+              type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email" required placeholder="you@example.com"
+              className="mt-1 w-full bg-bg border border-border rounded-lg px-3.5 py-2.5 text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent transition-colors"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-text-muted">Password</label>
+            <input
+              type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password" required placeholder="••••••••"
+              className="mt-1 w-full bg-bg border border-border rounded-lg px-3.5 py-2.5 text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent transition-colors"
+            />
+          </div>
+          {error && <p className="text-xs text-red">{error}</p>}
+          <button
+            type="submit" disabled={loading}
+            className="w-full bg-accent hover:bg-accent-hover disabled:opacity-60 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
+          >
+            {loading ? "Signing in…" : "Sign in / Create account"}
+          </button>
+          <p className="text-[11px] text-text-dim text-center">
+            New here? Signing in creates your account.
+          </p>
+        </form>
+
+        <div className="flex items-center gap-3 my-5">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-[11px] text-text-dim uppercase tracking-wide">or</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
         <a
           href="/api/auth/google?mode=login"
           className="inline-flex items-center gap-3 px-6 py-3 bg-surface border border-border rounded-xl hover:bg-surface-hover transition-all text-sm font-medium text-text w-full justify-center"

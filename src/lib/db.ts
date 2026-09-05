@@ -49,6 +49,12 @@ export async function initDB() {
     created_at TEXT NOT NULL
   )`);
 
+  // Migration: password_hash for email/password login (adds column to existing DBs)
+  const userCols = await db.execute("PRAGMA table_info(users)");
+  if (!userCols.rows.some((r) => String(r.name) === "password_hash")) {
+    await db.execute("ALTER TABLE users ADD COLUMN password_hash TEXT");
+  }
+
   await db.execute(`CREATE TABLE IF NOT EXISTS tasks (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL DEFAULT '',
