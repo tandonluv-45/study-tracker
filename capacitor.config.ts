@@ -3,11 +3,10 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.luv.orbit',
   appName: 'Orbit',
-  // Placeholder bundle; the app actually loads the live site via server.url below.
   webDir: 'capacitor-www',
   server: {
-    // Phase 1: load the deployed tracker directly in the WebView.
-    // Later we swap this for the bundled gamified "Orbit" UI.
+    // Loads the deployed tracker. The FocusLock native plugin is baked into
+    // the APK, so the live site can call it once Phase 3 wiring ships.
     url: 'https://tracker-lake-ten.vercel.app',
     cleartext: false,
   },

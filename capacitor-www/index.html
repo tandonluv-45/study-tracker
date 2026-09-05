@@ -3,13 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Orbit</title>
+  <title>FocusLock Test</title>
   <style>
-    html,body{height:100%;margin:0;background:#08090C;color:#8B93BD;
-      font-family:system-ui,sans-serif;display:grid;place-items:center;}
+    :root{--bg:#08090C;--surface:#131519;--line:#292D34;--text:#F3F4F6;--muted:#8B93BD;--cyan:#46E0D0;--violet:#9B7BFF;--red:#FF7E82;--ok:#7CE7A6;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;padding:28px 20px 60px;min-height:100vh;}
+    h1{font-size:20px;margin-bottom:4px;}
+    .sub{color:var(--muted);font-size:13px;margin-bottom:24px;}
+    .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px;}
+    .card h2{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+    button{flex:1;min-width:130px;background:#1A1D22;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;}
+    button.primary{background:var(--cyan);color:#04121A;border:none;}
+    button.stop{background:var(--red);color:#1a0505;border:none;}
+    .status{font-size:12px;font-family:ui-monospace,monospace;color:var(--muted);}
+    .status b.on{color:var(--ok);}
+    .status b.off{color:var(--red);}
+    label{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:14px;border-bottom:1px solid #1C2026;}
+    label:last-child{border-bottom:none;}
+    input[type=checkbox]{width:18px;height:18px;accent-color:var(--cyan);}
+    #log{background:#0c0e12;border:1px solid var(--line);border-radius:10px;padding:12px;font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);white-space:pre-wrap;max-height:160px;overflow:auto;}
   </style>
 </head>
 <body>
-  <p>Loading Orbit…</p>
+  <h1>FocusLock — test console</h1>
+  <p class="sub">Phase 2 harness. Grant the two permissions, pick apps, Start, then open one of them.</p>
+
+  <div class="card">
+    <h2>Permissions</h2>
+    <p class="status">Usage access: <b id="usageStatus" class="off">unknown</b></p>
+    <p class="status" style="margin:6px 0 12px">Overlay: <b id="overlayStatus" class="off">unknown</b></p>
+    <div class="row">
+      <button onclick="grantUsage()">Grant usage access</button>
+      <button onclick="grantOverlay()">Grant overlay</button>
+    </div>
+    <div class="row"><button onclick="checkPerms()">Re-check</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Apps to block</h2>
+    <label><input type="checkbox" value="com.google.android.youtube" checked> YouTube</label>
+    <label><input type="checkbox" value="com.android.chrome" checked> Chrome</label>
+    <label><input type="checkbox" value="com.instagram.android"> Instagram</label>
+    <label><input type="checkbox" value="com.whatsapp"> WhatsApp</label>
+  </div>
+
+  <div class="card">
+    <h2>Control — <span id="active" class="status">stopped</span></h2>
+    <div class="row">
+      <button class="primary" onclick="startLock()">▶ Start focus lock</button>
+      <button class="stop" onclick="stopLock()">■ Stop</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Log</h2>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    const log = (m) => { const l = document.getElementById('log'); l.textContent = new Date().toLocaleTimeString() + '  ' + m + '\n' + l.textContent; };
+    const FL = () => window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.FocusLock;
+
+    function setStatus(id, granted){ const e=document.getElementById(id); e.textContent = granted?'granted':'not granted'; e.className = granted?'on':'off'; }
+
+    async function checkPerms(){
+      const fl = FL(); if(!fl){ log('FocusLock plugin NOT found — not running in the app?'); return; }
+      try{
+        const u = await fl.hasUsageAccess(); setStatus('usageStatus', u.granted);
+        const o = await fl.canDrawOverlays(); setStatus('overlayStatus', o.granted);
+        const a = await fl.isActive(); document.getElementById('active').textContent = a.active?'RUNNING':'stopped';
+        log('checked: usage='+u.granted+' overlay='+o.granted+' active='+a.active);
+      }catch(e){ log('check error: '+e); }
+    }
+    async function grantUsage(){ const fl=FL(); if(fl){ await fl.requestUsageAccess(); log('opened Usage access settings — enable Orbit, then come back & Re-check'); } }
+    async function grantOverlay(){ const fl=FL(); if(fl){ await fl.requestOverlay(); log('opened Overlay settings — allow Orbit, then come back & Re-check'); } }
+
+    function selectedApps(){ return [...document.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value); }
+
+    async function startLock(){
+      const fl=FL(); if(!fl){ log('plugin not found'); return; }
+      const apps = selectedApps();
+      if(!apps.length){ log('pick at least one app'); return; }
+      try{ await fl.start({apps}); document.getElementById('active').textContent='RUNNING';
+        log('STARTED — blocking: '+apps.join(', ')+' . Now open one of them.'); }
+      catch(e){ log('start error: '+e); }
+    }
+    async function stopLock(){
+      const fl=FL(); if(!fl) return;
+      try{ await fl.stop(); document.getElementById('active').textContent='stopped'; log('STOPPED'); }
+      catch(e){ log('stop error: '+e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{ setTimeout(checkPerms, 400); });
+  </script>
 </body>
 </html>
