@@ -7,6 +7,10 @@ import {
   type GoalCompletion, type Task, type UserSession,
 } from "@/lib/api";
 import { usePomodoroContext } from "@/lib/PomodoroContext";
+import {
+  isNativeApp, BLOCKABLE_APPS, getLockEnabled, setLockEnabled,
+  getLockApps, setLockApps, getPermissions, requestUsageAccess, requestOverlay,
+} from "@/lib/focusLock";
 import { format } from "date-fns";
 import s from "./orbit.module.css";
 
@@ -53,6 +57,23 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   const reloadGoals = useCallback(() => { fetchGoals().then(setGoals); }, []);
   const reloadTasks = useCallback(() => { fetchTasks(today).then(setTasks); }, [today]);
   useEffect(() => { reloadGoals(); reloadTasks(); }, [reloadGoals, reloadTasks]);
+
+  // ---- focus-lock settings ----
+  const [lockEnabled, setLockEnabledS] = useState(false);
+  const [lockApps, setLockAppsS] = useState<string[]>([]);
+  const [perms, setPerms] = useState({ usage: false, overlay: false });
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    setLockEnabledS(getLockEnabled());
+    setLockAppsS(getLockApps());
+    getPermissions().then(setPerms);
+  }, []);
+  const toggleLock = () => { const v = !lockEnabled; setLockEnabledS(v); setLockEnabled(v); if (v) getPermissions().then(setPerms); };
+  const toggleLockApp = (pkg: string) => {
+    const next = lockApps.includes(pkg) ? lockApps.filter((p) => p !== pkg) : [...lockApps, pkg];
+    setLockAppsS(next); setLockApps(next);
+  };
+  const goTab = (t: Tab) => { setFocusOpen(false); setTab(t); };
 
   const now = new Date();
   const curIdx = Math.max(0, roadmap.findIndex(
@@ -249,6 +270,44 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
             <div className={s.stat}><div className={s.statK}>Checkpoints</div><div className={s.statV}>{curDone} <small>/ {curTotal}</small></div></div>
             <div className={s.stat}><div className={s.statK}>Constellation</div><div className={s.statV} style={{ fontSize: 18 }}>{CONSTELLATION[cur.month] || cur.theme}</div></div>
           </div>
+
+          {isNativeApp() && (
+            <div className={s.lockSec}>
+              <div className={s.lockHead}>
+                <div>
+                  <div className={s.lockTitle}>Focus Lock</div>
+                  <div className={s.lockDesc}>Blocks these apps while a focus burn runs.</div>
+                </div>
+                <button className={`${s.toggle} ${lockEnabled ? s.toggleOn : ""}`} onClick={toggleLock} aria-label="Toggle focus lock"><span className={s.knob} /></button>
+              </div>
+
+              {lockEnabled && (
+                <>
+                  {(!perms.usage || !perms.overlay) && (
+                    <div className={s.permWrap}>
+                      <button className={`${s.permBtn} ${perms.usage ? s.permOk : ""}`} onClick={requestUsageAccess}>
+                        Usage access {perms.usage ? "✓ granted" : <span className={s.permGrant}>Grant →</span>}
+                      </button>
+                      <button className={`${s.permBtn} ${perms.overlay ? s.permOk : ""}`} onClick={requestOverlay}>
+                        Display over apps {perms.overlay ? "✓ granted" : <span className={s.permGrant}>Grant →</span>}
+                      </button>
+                      <button className={s.recheck} onClick={() => getPermissions().then(setPerms)}>Re-check permissions</button>
+                    </div>
+                  )}
+                  <div className={s.chips}>
+                    {BLOCKABLE_APPS.map((a) => {
+                      const on = lockApps.includes(a.pkg);
+                      return (
+                        <button key={a.pkg} className={`${s.chip} ${on ? s.chipOn : ""}`} onClick={() => toggleLockApp(a.pkg)}>
+                          <span className={`${s.chipBox} ${on ? s.chipBoxOn : ""}`}>{on && <Check />}</span>{a.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -266,26 +325,30 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
               <button className={`${s.fBtn} ${s.fBtnPrimary}`} onClick={pomo.toggleRunning}>{pomo.isRunning ? "Pause" : "Launch"}</button>
               <button className={s.fBtn} onClick={() => setFocusOpen(false)}>Close</button>
             </div>
-            {pomo.isRunning && pomo.mode === "work" && <div className={s.fLock}>◆ distractions locked ◆</div>}
+            {pomo.mode === "work" && isNativeApp() && (
+              lockEnabled && lockApps.length > 0
+                ? (pomo.isRunning && <div className={s.fLock}>◆ distractions locked ◆</div>)
+                : <button className={s.recheck} style={{ marginTop: 24 }} onClick={() => goTab("you")}>Set up Focus Lock in “You” →</button>
+            )}
           </div>
         </div>
       )}
 
       {/* ============ NAV ============ */}
       <nav className={s.nav}>
-        <button className={`${s.navBtn} ${tab === "pass" ? s.navOn : ""}`} onClick={() => setTab("pass")}>
+        <button className={`${s.navBtn} ${tab === "pass" && !focusOpen ? s.navOn : ""}`} onClick={() => goTab("pass")}>
           <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5" /><path d="M6 9.5V20h12V9.5" /></svg>Pass
         </button>
-        <button className={`${s.navBtn} ${tab === "chart" ? s.navOn : ""}`} onClick={() => setTab("chart")}>
+        <button className={`${s.navBtn} ${tab === "chart" && !focusOpen ? s.navOn : ""}`} onClick={() => goTab("chart")}>
           <svg viewBox="0 0 24 24"><path d="M5 19 9 8l5 6 3-9 2 5" /><circle cx="5" cy="19" r="1.3" fill="currentColor" stroke="none" /><circle cx="9" cy="8" r="1.3" fill="currentColor" stroke="none" /><circle cx="14" cy="14" r="1.3" fill="currentColor" stroke="none" /><circle cx="17" cy="5" r="1.3" fill="currentColor" stroke="none" /></svg>Chart
         </button>
         <button className={`${s.navBtn} ${s.fab}`} onClick={() => setFocusOpen(true)}>
           <span className={s.fabCircle}><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="2.2" fill="#000" stroke="none" /></svg></span>Focus
         </button>
-        <button className={`${s.navBtn} ${tab === "tasks" ? s.navOn : ""}`} onClick={() => setTab("tasks")}>
+        <button className={`${s.navBtn} ${tab === "tasks" && !focusOpen ? s.navOn : ""}`} onClick={() => goTab("tasks")}>
           <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4.5 6l1 1 1.5-2M4.5 12l1 1 1.5-2M4.5 18l1 1 1.5-2" /></svg>Tasks
         </button>
-        <button className={`${s.navBtn} ${tab === "you" ? s.navOn : ""}`} onClick={() => setTab("you")}>
+        <button className={`${s.navBtn} ${tab === "you" && !focusOpen ? s.navOn : ""}`} onClick={() => goTab("you")}>
           <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5" /></svg>You
         </button>
       </nav>
