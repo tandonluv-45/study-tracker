@@ -11,15 +11,20 @@ import PomodoroPiPBridge from "@/components/PomodoroPiPBridge";
 import CalendarView from "@/components/CalendarView";
 import Timetable from "@/components/Timetable";
 import ExpenseTracker from "@/components/ExpenseTracker";
+import OrbitApp from "@/components/orbit/OrbitApp";
 import { PomodoroProvider } from "@/lib/PomodoroContext";
+import { isNativeApp } from "@/lib/focusLock";
 import { getSessionUser, type UserSession } from "@/lib/api";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [user, setUser] = useState<UserSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [orbit, setOrbit] = useState(false);
 
   useEffect(() => {
+    // The native Orbit app (or ?orbit=1 for preview) shows the gamified UI.
+    setOrbit(isNativeApp() || new URLSearchParams(window.location.search).has("orbit"));
     getSessionUser().then((u) => {
       if (!u) {
         window.location.href = "/login";
@@ -65,6 +70,15 @@ export default function Home() {
         return <Dashboard onNavigate={setActiveTab} user={user} />;
     }
   };
+
+  if (orbit) {
+    return (
+      <PomodoroProvider>
+        <OrbitApp user={user} />
+        <PomodoroPiPBridge />
+      </PomodoroProvider>
+    );
+  }
 
   return (
     <PomodoroProvider>
