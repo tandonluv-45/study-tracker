@@ -116,35 +116,48 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
     }
   }, [tab]);
 
-  // ---- focus approach animation ----
+  // ---- focus approach animation (full-screen starfield, content floats over it) ----
   const apRef = useRef<HTMLCanvasElement>(null);
+  const pomoRef = useRef(pomo); pomoRef.current = pomo;
   useEffect(() => {
     if (!focusOpen) return;
     const c = apRef.current; if (!c) return;
     const ctx = c.getContext("2d"); if (!ctx) return;
-    c.width = c.offsetWidth; c.height = c.offsetHeight;
     const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
-    let ps = Array.from({ length: 140 }, () => ({ x: Math.random() * 2 - 1, y: Math.random() * 2 - 1, z: Math.random(), sp: 0.003 + Math.random() * 0.004 }));
+    let W = 0, H = 0;
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = c.clientWidth || window.innerWidth;
+      H = c.clientHeight || window.innerHeight;
+      c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    const ps = Array.from({ length: 170 }, () => ({ x: Math.random() * 2 - 1, y: Math.random() * 2 - 1, z: Math.random(), sp: 0.003 + Math.random() * 0.004 }));
     let raf = 0;
     const loop = () => {
-      ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.fillRect(0, 0, c.width, c.height);
-      const cx = c.width / 2, cy = c.height / 2;
-      const running = pomo.isRunning;
+      const p2 = pomoRef.current;
+      ctx.fillStyle = "rgba(3,4,8,.32)"; ctx.fillRect(0, 0, W, H);
+      const cx = W / 2, cy = H / 2;
       for (const p of ps) {
-        if (running) { p.z -= p.sp; if (p.z < 0.02) { p.x = Math.random() * 2 - 1; p.y = Math.random() * 2 - 1; p.z = 1; } }
+        if (p2.isRunning) { p.z -= p.sp; if (p.z < 0.02) { p.x = Math.random() * 2 - 1; p.y = Math.random() * 2 - 1; p.z = 1; } }
         const sx = cx + (p.x / p.z) * cx, sy = cy + (p.y / p.z) * cy, rr = (1 - p.z) * 1.7 + 0.2;
+        if (sx < -5 || sx > W + 5 || sy < -5 || sy > H + 5) continue;
         ctx.globalAlpha = Math.min(1, (1 - p.z) + 0.15); ctx.fillStyle = "#fff";
         ctx.beginPath(); ctx.arc(sx, sy, rr, 0, 7); ctx.fill();
       }
       ctx.globalAlpha = 1;
-      const prog = pomo.mode === "work" ? 1 - pomo.timeLeft / (25 * 60) : 0.5;
-      const dr = 3 + Math.max(0, prog) * 26;
-      ctx.fillStyle = "#e8ebf2"; ctx.beginPath(); ctx.arc(cx, cy - 150, dr, 0, 7); ctx.fill();
+      const prog = p2.mode === "work" ? 1 - p2.timeLeft / (25 * 60) : 0.4;
+      const dr = 4 + Math.max(0, prog) * 30;
+      const dy = cy - H * 0.16;
+      ctx.fillStyle = "#e8ebf2"; ctx.beginPath(); ctx.arc(cx, dy, dr, 0, 7); ctx.fill();
+      ctx.globalAlpha = 0.12; ctx.beginPath(); ctx.arc(cx, dy, dr + 10, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
       if (!reduce) raf = requestAnimationFrame(loop);
     };
-    loop();
-    return () => cancelAnimationFrame(raf);
-  }, [focusOpen, pomo.isRunning, pomo.mode, pomo.timeLeft]);
+    raf = requestAnimationFrame(() => { resize(); loop(); });
+    const onResize = () => resize();
+    window.addEventListener("resize", onResize);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); };
+  }, [focusOpen]);
 
   const mm = String(Math.floor(pomo.timeLeft / 60)).padStart(2, "0");
   const ss = String(pomo.timeLeft % 60).padStart(2, "0");
