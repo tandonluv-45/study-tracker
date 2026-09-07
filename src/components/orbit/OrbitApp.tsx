@@ -8,16 +8,20 @@ import { usePomodoroContext } from "@/lib/PomodoroContext";
 import {
   isNativeApp, BLOCKABLE_APPS, getLockEnabled, setLockEnabled,
   getLockApps, setLockApps, getPermissions, requestUsageAccess, requestOverlay,
+  listInstalledApps, type InstalledApp,
 } from "@/lib/focusLock";
+import { CONSTELLATIONS, overflowPoint } from "@/lib/constellations";
 import { format } from "date-fns";
 import s from "./orbit.module.css";
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 // A real constellation per calendar month.
+// Sprint months → a real constellation we have a silhouette for.
 const CONSTELLATION: Record<string, string> = {
-  January:"Gemini", February:"Cancer", March:"Leo", April:"Virgo", May:"Boötes",
-  June:"Orion", July:"Lyra", August:"Cygnus", September:"Aquila",
-  October:"Pegasus", November:"Andromeda", December:"Taurus",
+  September: "Orion", October: "Scorpius", November: "Leo",
+  December: "Cygnus", January: "Gemini", February: "Pegasus",
+  // other months (outside the sprint) still map to a drawable shape
+  March: "Leo", April: "Pegasus", May: "Cygnus", June: "Orion", July: "Gemini", August: "Scorpius",
 };
 
 type Tab = "pass" | "chart" | "tasks" | "you";
@@ -32,17 +36,6 @@ function gateOf(text: string): string {
   return "DSA";
 }
 
-function layoutStars(n: number): [number, number][] {
-  const pts: [number, number][] = [];
-  for (let i = 0; i < n; i++) {
-    const t = n <= 1 ? 0.5 : i / (n - 1);
-    const y = 30 + t * 280;
-    const x = 170 + Math.sin(i * 1.7) * 95 + Math.cos(i * 0.7) * 28;
-    pts.push([Math.max(46, Math.min(294, x)), y]);
-  }
-  return pts;
-}
-
 export default function OrbitApp({ user }: { user: UserSession | null }) {
   const pomo = usePomodoroContext();
   const [tab, setTab] = useState<Tab>("pass");
@@ -55,11 +48,14 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   const [lockEnabled, setLockEnabledS] = useState(false);
   const [lockApps, setLockAppsS] = useState<string[]>([]);
   const [perms, setPerms] = useState({ usage: false, overlay: false });
+  const [installedApps, setInstalledApps] = useState<InstalledApp[]>([]);
+  const [appQuery, setAppQuery] = useState("");
   useEffect(() => {
     if (!isNativeApp()) return;
     setLockEnabledS(getLockEnabled());
     setLockAppsS(getLockApps());
     getPermissions().then(setPerms);
+    listInstalledApps().then(setInstalledApps);
   }, []);
   const toggleLock = () => { const v = !lockEnabled; setLockEnabledS(v); setLockEnabled(v); if (v) getPermissions().then(setPerms); };
   const toggleLockApp = (pkg: string) => {
@@ -256,16 +252,34 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
                       <button className={s.recheck} onClick={() => getPermissions().then(setPerms)}>Re-check permissions</button>
                     </div>
                   )}
-                  <div className={s.chips}>
-                    {BLOCKABLE_APPS.map((a) => {
-                      const on = lockApps.includes(a.pkg);
-                      return (
-                        <button key={a.pkg} className={`${s.chip} ${on ? s.chipOn : ""}`} onClick={() => toggleLockApp(a.pkg)}>
-                          <span className={`${s.chipBox} ${on ? s.chipBoxOn : ""}`}>{on && <Check />}</span>{a.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {(() => {
+                    const options = installedApps.length ? installedApps : BLOCKABLE_APPS;
+                    const q = appQuery.trim().toLowerCase();
+                    const filtered = q ? options.filter((a) => a.label.toLowerCase().includes(q)) : options;
+                    return (
+                      <>
+                        <div className={s.lockDesc} style={{ marginTop: 14 }}>Apps to block · {lockApps.length} selected</div>
+                        <input className={s.appSearch} value={appQuery} onChange={(e) => setAppQuery(e.target.value)} placeholder="Search your apps…" />
+                        {filtered.length === 0 ? (
+                          <p className={s.appEmpty}>
+                            {installedApps.length ? "No apps match." : "Loading your apps… if this stays empty, reinstall the latest app build to enable app detection."}
+                          </p>
+                        ) : (
+                          <div className={s.appList}>
+                            {filtered.map((a) => {
+                              const on = lockApps.includes(a.pkg);
+                              return (
+                                <button key={a.pkg} className={`${s.chip} ${on ? s.chipOn : ""}`} onClick={() => toggleLockApp(a.pkg)}>
+                                  <span className={`${s.chipBox} ${on ? s.chipBoxOn : ""}`}>{on && <Check />}</span>
+                                  <span>{a.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </>
               )}
             </div>
@@ -330,29 +344,37 @@ function ConstellationSvg({ month, isDone, interactive, onStar }: {
   onStar?: (i: number) => void;
 }) {
   const mk = monthKeyOf(month);
-  const pts = useMemo(() => layoutStars(month.goals.length), [month.goals.length]);
+  const shape = CONSTELLATIONS[CONSTELLATION[month.month]];
+  const n = month.goals.length;
   const nextIdx = month.goals.findIndex((_, i) => !isDone(mk, i));
   const statusOf = (i: number): CkStatus => isDone(mk, i) ? "done" : i === nextIdx ? "current" : "next";
-  const color = { done: "#c9ced8", current: "#ffffff", next: "#3a3d44" };
-  const rOf = { done: 4, current: 6, next: 3.2 };
+  const color = { done: "#c9ced8", current: "#ffffff", next: "#565b66" };
+  const rOf = { done: 4, current: 6, next: 3.4 };
+
+  // Checkpoint positions come from the real figure; overflow falls back to a scatter.
+  const cp: [number, number][] = [];
+  for (let i = 0; i < n; i++) cp.push(shape?.stars[i] ?? overflowPoint(i));
+  const decorative = shape ? shape.stars.slice(n) : [];
+  const allStars = shape ? shape.stars : cp;
 
   return (
-    <svg viewBox="0 0 340 340" preserveAspectRatio={interactive ? "xMidYMid meet" : "xMidYMid slice"}>
-      {pts.slice(1).map((p, i) => {
-        const a = pts[i], b = p;
-        const bright = isDone(mk, i) && isDone(mk, i + 1);
-        return <line key={i} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={bright ? "#5a5f69" : "#20242b"} strokeWidth={1} strokeDasharray={bright ? "" : "3 5"} />;
+    <svg viewBox="0 0 300 320" preserveAspectRatio={interactive ? "xMidYMid meet" : "xMidYMid slice"}>
+      {(shape?.lines ?? []).map(([a, b], i) => {
+        const pa = allStars[a], pb = allStars[b]; if (!pa || !pb) return null;
+        const bright = a < n && b < n && isDone(mk, a) && isDone(mk, b);
+        return <line key={i} x1={pa[0]} y1={pa[1]} x2={pb[0]} y2={pb[1]} stroke={bright ? "#6a6f79" : "#2a2f38"} strokeWidth={1} strokeDasharray={bright ? "" : "3 5"} />;
       })}
-      {pts.map((p, i) => {
+      {decorative.map((p, j) => <circle key={`d${j}`} cx={p[0]} cy={p[1]} r={2.6} fill="#3a3f48" />)}
+      {cp.map((p, i) => {
         const st = statusOf(i);
-        const above = p[1] > 40;
+        const above = p[1] > 44;
         return (
           <g key={i} onClick={() => interactive && onStar?.(i)} style={{ cursor: interactive ? "pointer" : "default" }}>
             {st === "current" && <circle cx={p[0]} cy={p[1]} r={9} fill="none" stroke="#fff" strokeWidth={1} opacity={0.5}><animate attributeName="r" values="9;15;9" dur="2.6s" repeatCount="indefinite" /><animate attributeName="opacity" values=".55;0;.55" dur="2.6s" repeatCount="indefinite" /></circle>}
             <circle cx={p[0]} cy={p[1]} r={rOf[st]} fill={color[st]} />
             {interactive && (
               <text className={s.clabel} x={p[0]} y={above ? p[1] - 12 : p[1] + 17} textAnchor="middle"
-                fill={st === "current" ? "#F3F4F6" : st === "done" ? "#9096a0" : "#4d515a"} fontWeight={st === "current" ? 700 : 400}>
+                fill={st === "current" ? "#F3F4F6" : st === "done" ? "#9096a0" : "#5b616c"} fontWeight={st === "current" ? 700 : 400}>
                 {shortLabel(month.goals[i])}
               </text>
             )}

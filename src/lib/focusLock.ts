@@ -1,6 +1,8 @@
 // Bridge to the native FocusLock Capacitor plugin (Android/Orbit app only).
 // Every call safely no-ops on the web, so the same site runs everywhere.
 
+export interface InstalledApp { pkg: string; label: string }
+
 interface FocusLockPlugin {
   hasUsageAccess(): Promise<{ granted: boolean }>;
   requestUsageAccess(): Promise<void>;
@@ -9,6 +11,7 @@ interface FocusLockPlugin {
   start(opts: { apps: string[] }): Promise<void>;
   stop(): Promise<void>;
   isActive(): Promise<{ active: boolean }>;
+  listApps?(): Promise<{ apps: InstalledApp[] }>;
 }
 
 function getPlugin(): FocusLockPlugin | null {
@@ -82,6 +85,13 @@ export async function requestUsageAccess(): Promise<void> {
 export async function requestOverlay(): Promise<void> {
   const p = getPlugin();
   if (p) { try { await p.requestOverlay(); } catch { /* ignore */ } }
+}
+
+/** The device's launchable apps (native only; empty on web / older builds). */
+export async function listInstalledApps(): Promise<InstalledApp[]> {
+  const p = getPlugin();
+  if (!p || !p.listApps) return [];
+  try { const r = await p.listApps(); return r.apps || []; } catch { return []; }
 }
 
 /** Starts the lock if enabled + apps chosen; called when a focus session begins. */

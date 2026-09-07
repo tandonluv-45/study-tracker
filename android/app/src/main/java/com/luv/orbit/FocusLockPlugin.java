@@ -3,10 +3,17 @@ package com.luv.orbit;
 import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Process;
 import android.provider.Settings;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -86,6 +93,36 @@ public class FocusLockPlugin extends Plugin {
     public void isActive(PluginCall call) {
         JSObject ret = new JSObject();
         ret.put("active", FocusLockService.isRunning);
+        call.resolve(ret);
+    }
+
+    // Returns the device's launchable (user-facing) apps, sorted by name.
+    @PluginMethod
+    public void listApps(PluginCall call) {
+        PackageManager pm = getContext().getPackageManager();
+        Intent intent = new Intent(Intent.ACTION_MAIN, null);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> ris = pm.queryIntentActivities(intent, 0);
+        String self = getContext().getPackageName();
+        HashSet<String> seen = new HashSet<>();
+        ArrayList<String[]> apps = new ArrayList<>();
+        for (ResolveInfo ri : ris) {
+            String pkg = ri.activityInfo.packageName;
+            if (pkg.equals(self) || seen.contains(pkg)) continue;
+            seen.add(pkg);
+            String label = ri.loadLabel(pm).toString();
+            apps.add(new String[]{ pkg, label });
+        }
+        Collections.sort(apps, (a, b) -> a[1].compareToIgnoreCase(b[1]));
+        JSArray arr = new JSArray();
+        for (String[] a : apps) {
+            JSObject o = new JSObject();
+            o.put("pkg", a[0]);
+            o.put("label", a[1]);
+            arr.put(o);
+        }
+        JSObject ret = new JSObject();
+        ret.put("apps", arr);
         call.resolve(ret);
     }
 
