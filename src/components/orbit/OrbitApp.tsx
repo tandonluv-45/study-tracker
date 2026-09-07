@@ -2,10 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { roadmap } from "@/lib/roadmap-data";
-import {
-  fetchGoals, toggleGoal, fetchTasks, updateTask, createTask,
-  type GoalCompletion, type Task, type UserSession,
-} from "@/lib/api";
+import { fetchGoals, toggleGoal, type GoalCompletion, type UserSession } from "@/lib/api";
+import SprintPlan from "./SprintPlan";
 import { usePomodoroContext } from "@/lib/PomodoroContext";
 import {
   isNativeApp, BLOCKABLE_APPS, getLockEnabled, setLockEnabled,
@@ -50,13 +48,8 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   const [tab, setTab] = useState<Tab>("pass");
   const [focusOpen, setFocusOpen] = useState(false);
   const [goals, setGoals] = useState<GoalCompletion[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTask, setNewTask] = useState("");
-  const today = format(new Date(), "yyyy-MM-dd");
-
   const reloadGoals = useCallback(() => { fetchGoals().then(setGoals); }, []);
-  const reloadTasks = useCallback(() => { fetchTasks(today).then(setTasks); }, [today]);
-  useEffect(() => { reloadGoals(); reloadTasks(); }, [reloadGoals, reloadTasks]);
+  useEffect(() => { reloadGoals(); }, [reloadGoals]);
 
   // ---- focus-lock settings ----
   const [lockEnabled, setLockEnabledS] = useState(false);
@@ -100,8 +93,6 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   const daysLeft = Math.max(0, Math.ceil((monthEnd.getTime() - now.getTime()) / 86400000));
   const elapsedFrac = (now.getTime() - monthStart.getTime()) / (monthEnd.getTime() - monthStart.getTime());
   const onTrack = curTotal === 0 || curDone / curTotal >= elapsedFrac - 0.15;
-
-  const tasksDone = tasks.filter((t) => t.completed).length;
 
   // ---- starfield background ----
   const skyRef = useRef<HTMLCanvasElement>(null);
@@ -162,18 +153,6 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   const mm = String(Math.floor(pomo.timeLeft / 60)).padStart(2, "0");
   const ss = String(pomo.timeLeft % 60).padStart(2, "0");
 
-  // ---- task actions ----
-  const toggleTask = async (t: Task) => {
-    setTasks((prev) => prev.map((x) => x.id === t.id ? { ...x, completed: !x.completed } : x));
-    await updateTask(t.id, { completed: !t.completed });
-  };
-  const addTask = async () => {
-    const title = newTask.trim(); if (!title) return;
-    setNewTask("");
-    await createTask({ title, completed: false, date: today, category: "daily", priority: "medium" });
-    reloadTasks();
-  };
-
   return (
     <div className={s.root}>
       <canvas ref={skyRef} className={s.stars} />
@@ -211,7 +190,7 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
               <div className={s.ckbar}><i style={{ width: `${pct}%` }} /></div>
               <div className={s.grid2}>
                 <div className={s.c}><div className={s.gk}>Gate</div><div className={s.gv}>{nextIdx >= 0 ? gateOf(nextCheckpoint) : "—"}</div></div>
-                <div className={`${s.c} ${s.r}`}><div className={s.gk}>Boarding · today</div><div className={s.gv}>{tasksDone}/{tasks.length} tasks · {pomo.sessionsToday} burns</div></div>
+                <div className={`${s.c} ${s.r}`}><div className={s.gk}>Boarding · today</div><div className={s.gv}>{pomo.sessionsToday} focus burns</div></div>
               </div>
             </div>
             <div className={s.perf}><div className={s.perfDash} /></div>
@@ -238,38 +217,8 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
         <ChartView chartIdx={chartIdx} setChartIdx={setChartIdx} isDone={isDone} onToggle={async (mk, i) => { await toggleGoal(mk, i); reloadGoals(); }} />
       )}
 
-      {/* ============ TASKS ============ */}
-      {tab === "tasks" && (
-        <div className={s.view}>
-          <div className={s.label} style={{ marginBottom: 8 }}>Today · {format(now, "EEE dd MMM")}</div>
-          <h2 className={s.h2}>Manifest</h2>
-          <p className={s.pLead}>Objectives for <b>{CONSTELLATION[cur.month] || cur.theme}</b>.</p>
-          <div className={s.mprog}>
-            <div className={s.mprogLab}><span>CLEARED TODAY</span><span>{tasksDone} / {tasks.length || 0}</span></div>
-            <div className={s.mprogBar}><i style={{ width: `${tasks.length ? (tasksDone / tasks.length) * 100 : 0}%` }} /></div>
-          </div>
-          {tasks.length === 0 ? (
-            <p className={s.empty}>No objectives logged today.</p>
-          ) : (
-            <div className={s.manifest}>
-              {tasks.map((t) => (
-                <button key={t.id} className={s.task} onClick={() => toggleTask(t)}>
-                  <span className={`${s.chk} ${t.completed ? s.chkOn : ""}`}>
-                    {t.completed && <Check />}
-                  </span>
-                  <span className={`${s.tName} ${t.completed ? s.tDone : ""}`}>{t.title}</span>
-                  {t.subject && <span className={s.tMeta}>{t.subject}</span>}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className={s.addRow}>
-            <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Add an objective…"
-              onKeyDown={(e) => { if (e.key === "Enter") addTask(); }} />
-            <button onClick={addTask}>Add</button>
-          </div>
-        </div>
-      )}
+      {/* ============ PLAN ============ */}
+      {tab === "tasks" && <SprintPlan />}
 
       {/* ============ YOU ============ */}
       {tab === "you" && (
@@ -359,7 +308,7 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
           <span className={s.fabCircle}><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="2.2" fill="#000" stroke="none" /></svg></span>Focus
         </button>
         <button className={`${s.navBtn} ${tab === "tasks" && !focusOpen ? s.navOn : ""}`} onClick={() => goTab("tasks")}>
-          <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4.5 6l1 1 1.5-2M4.5 12l1 1 1.5-2M4.5 18l1 1 1.5-2" /></svg>Tasks
+          <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4.5 6l1 1 1.5-2M4.5 12l1 1 1.5-2M4.5 18l1 1 1.5-2" /></svg>Plan
         </button>
         <button className={`${s.navBtn} ${tab === "you" && !focusOpen ? s.navOn : ""}`} onClick={() => goTab("you")}>
           <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5" /></svg>You

@@ -115,6 +115,12 @@ export async function initDB() {
     created_at TEXT NOT NULL
   )`);
 
+  await db.execute(`CREATE TABLE IF NOT EXISTS sprint_state (
+    user_id TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`);
+
   await db.execute(`CREATE TABLE IF NOT EXISTS user_roadmap (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
