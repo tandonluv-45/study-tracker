@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/session";
+import { makeCalendarState } from "@/lib/googleTokens";
 
 export async function GET(request: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -19,7 +21,14 @@ export async function GET(request: NextRequest) {
     ? "https://www.googleapis.com/auth/calendar.readonly"
     : "openid email profile";
 
-  const state = mode; // pass mode through state param
+  // For calendar linking, stamp the logged-in user's id into `state` here (this
+  // request runs where the session cookie exists — the WebView) so the callback
+  // can attach the calendar to the right account even if it finishes in another browser.
+  let state = mode;
+  if (mode === "calendar") {
+    const user = await getSession();
+    state = user ? makeCalendarState(user.id) : "calendar";
+  }
 
   const authUrl =
     `https://accounts.google.com/o/oauth2/v2/auth?` +

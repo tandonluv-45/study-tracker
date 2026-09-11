@@ -1,4 +1,23 @@
 import db, { initDB } from "./db";
+import crypto from "crypto";
+
+// --- Signed OAuth state, so the calendar link carries the user id through the
+// external browser (the WebView has the session cookie; the browser doesn't). ---
+function stateSecret() {
+  return process.env.GOOGLE_CLIENT_SECRET || process.env.TURSO_AUTH_TOKEN || "orbit-state-secret";
+}
+function sign(userId: string) {
+  return crypto.createHmac("sha256", stateSecret()).update(userId).digest("hex").slice(0, 20);
+}
+export function makeCalendarState(userId: string): string {
+  return `calendar:${userId}:${sign(userId)}`;
+}
+export function parseCalendarState(state: string): string | null {
+  const parts = state.split(":");
+  if (parts.length !== 3 || parts[0] !== "calendar") return null;
+  const [, userId, sig] = parts;
+  return sig === sign(userId) ? userId : null;
+}
 
 export interface GoogleTokenRow {
   access_token: string | null;
