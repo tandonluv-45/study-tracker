@@ -17,8 +17,14 @@ import {
   listInstalledApps, type InstalledApp,
 } from "@/lib/focusLock";
 import { CONSTELLATIONS, overflowPoint } from "@/lib/constellations";
+import { fetchSprintState } from "@/lib/sprintApi";
+import type { SprintState } from "@/lib/sprint-plan";
+import { buildLanes, type Lane, type LaneKey } from "@/lib/lanes";
 import { format } from "date-fns";
 import s from "./orbit.module.css";
+
+const LANE_COLOR: Record<LaneKey, string> = { dsa: "#8FA6C0", ai: "#C9A6FF", core: "#E0B15E" };
+type FlatCk = { key: string; title: string; sub?: string; done: boolean; lane: LaneKey };
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 // A real constellation per calendar month.
@@ -33,15 +39,6 @@ const CONSTELLATION: Record<string, string> = {
 type Tab = "pass" | "chart" | "tasks" | "you";
 type CkStatus = "done" | "current" | "next";
 
-const monthKeyOf = (m: { shortMonth: string; year: number }) => `${m.shortMonth}-${m.year}`;
-
-function gateOf(text: string): string {
-  const t = text.toLowerCase();
-  if (/hugging|rag|neural|vector|context|100x|history|\bai\b/.test(t)) return "AI";
-  if (/linalg|linear algebra|\bos\b|dbms|network|core cs/.test(t)) return "Core CS";
-  return "DSA";
-}
-
 export default function OrbitApp({ user }: { user: UserSession | null }) {
   const pomo = usePomodoroContext();
   const [tab, setTab] = useState<Tab>("pass");
@@ -52,12 +49,21 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   const [financesOpen, setFinancesOpen] = useState(false);
   const [timetableOpen, setTimetableOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [sprint, setSprint] = useState<SprintState | null>(null);
   const reloadGoals = useCallback(() => { fetchGoals().then(setGoals); }, []);
+  const reloadSprint = useCallback(() => { fetchSprintState().then(setSprint); }, []);
   const reloadFinance = useCallback(() => {
     const m = format(new Date(), "yyyy-MM"); // current month only
     fetchExpenses(m).then(setExpenses); fetchIncomes(m).then(setIncomes);
   }, []);
-  useEffect(() => { reloadGoals(); reloadFinance(); }, [reloadGoals, reloadFinance]);
+  useEffect(() => { reloadGoals(); reloadSprint(); reloadFinance(); }, [reloadGoals, reloadSprint, reloadFinance]);
+
+  // Core-CS milestones are stored in the goals table (monthKey = core key, index 0).
+  const coreDone = useCallback(
+    (key: string) => goals.some((g) => g.monthKey === key && g.goalIndex === 0 && g.completed),
+    [goals]
+  );
+  const toggleCore = useCallback(async (key: string) => { await toggleGoal(key, 0); reloadGoals(); }, [reloadGoals]);
 
   const totalIncome = incomes.reduce((a, i) => a + i.amount, 0);
   const totalSpent = expenses.reduce((a, e) => a + e.amount, 0);
@@ -86,7 +92,10 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
     const next = lockApps.includes(pkg) ? lockApps.filter((p) => p !== pkg) : [...lockApps, pkg];
     setLockAppsS(next); setLockApps(next);
   };
-  const goTab = (t: Tab) => { setFocusOpen(false); setTab(t); };
+  const goTab = (t: Tab) => {
+    setFocusOpen(false); setTab(t);
+    if (t === "pass" || t === "chart") { reloadSprint(); reloadGoals(); } // pick up Plan progress
+  };
 
   const now = new Date();
   const curIdx = Math.max(0, roadmap.findIndex(
@@ -94,19 +103,18 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   ));
   const [chartIdx, setChartIdx] = useState(curIdx);
 
-  const isDone = useCallback(
-    (mk: string, i: number) => goals.some((g) => g.monthKey === mk && g.goalIndex === i && g.completed),
-    [goals]
-  );
-
-  // ---- current month → boarding pass ----
+  // ---- current month → boarding pass (three lanes, derived from the Plan) ----
   const cur = roadmap[curIdx];
-  const curKey = monthKeyOf(cur);
-  const curDone = cur.goals.filter((_, i) => isDone(curKey, i)).length;
-  const curTotal = cur.goals.length;
-  const nextIdx = cur.goals.findIndex((_, i) => !isDone(curKey, i));
-  const nextCheckpoint = nextIdx >= 0 ? cur.goals[nextIdx] : "All checkpoints cleared";
-  const pct = curTotal ? Math.round((curDone / curTotal) * 100) : 0;
+  const monthISO = format(now, "yyyy-MM");
+  const laneData = sprint ? buildLanes(sprint, monthISO, coreDone) : null;
+  const lanes: Lane[] = laneData?.lanes ?? [];
+  const curDone = laneData?.solved ?? 0;
+  const curTotal = laneData?.total ?? 0;
+  const pct = laneData?.pct ?? 0;
+  // flattened checkpoints (dsa → ai → core) for the constellation
+  const flatCks: FlatCk[] = lanes.flatMap((l) =>
+    l.checkpoints.map((c) => ({ key: c.key, title: c.title, sub: c.sub, done: c.done, lane: l.key }))
+  );
 
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -235,31 +243,29 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
           <div className={s.deskCols}>
           <div className={s.colA}>
           <div className={s.hero}>
-            <ConstellationSvg month={cur} isDone={isDone} interactive={false} />
+            <ConstellationSvg monthName={cur.month} cks={flatCks} interactive={false} />
             <div className={s.heroCap}><div className={s.label}>Now charting</div><h2>{CONSTELLATION[cur.month] || cur.theme}</h2></div>
             <div className={s.heroName}>{cur.month} mission</div>
           </div>
 
-          <div className={s.sec}><h3>Boarding pass — next checkpoint</h3></div>
+          <div className={s.sec}><h3>Boarding pass · {format(now, "MMMM")}</h3><span className={s.n}>{daysLeft} days left</span></div>
           <div className={s.pass}>
             <div className={s.passTop}>
               <div className={s.passR1}>
                 <div className={s.fl}>FLIGHT <b>ORB-{String(curIdx + 1).padStart(2, "0")}</b> · {CONSTELLATION[cur.month] || cur.theme}</div>
                 <div className={`${s.pill} ${onTrack ? s.pillOk : s.pillWarn}`}><span className={s.d} /> {onTrack ? "On track" : "Behind"}</div>
               </div>
-              <div className={s.ckwrap}>
-                <div>
-                  <div className={s.ckK}>Next checkpoint</div>
-                  <div className={s.ckV}>{nextCheckpoint}</div>
-                  <div className={s.ckSub}>{nextIdx >= 0 ? `due ${format(monthEnd, "dd MMM")} · ${daysLeft} days left` : "voyage complete"}</div>
+              {!laneData ? (
+                <div className={s.ckSub} style={{ padding: "14px 0" }}>Charting your plan…</div>
+              ) : lanes.length === 0 ? (
+                <div className={s.ckSub} style={{ padding: "14px 0" }}>No checkpoints scheduled this month.</div>
+              ) : (
+                <div className={s.lanes}>
+                  {lanes.map((l) => (
+                    <LaneRow key={l.key} lane={l} onOpen={() => goTab("tasks")} onToggleCore={toggleCore} />
+                  ))}
                 </div>
-                <div className={s.idx}><div className={s.idxBig}>{String(Math.min(nextIdx < 0 ? curTotal : nextIdx + 1, curTotal)).padStart(2, "0")}</div><div className={s.idxOf}>of {String(curTotal).padStart(2, "0")}</div></div>
-              </div>
-              <div className={s.ckbar}><i style={{ width: `${pct}%` }} /></div>
-              <div className={s.grid2}>
-                <div className={s.c}><div className={s.gk}>Gate</div><div className={s.gv}>{nextIdx >= 0 ? gateOf(nextCheckpoint) : "—"}</div></div>
-                <div className={`${s.c} ${s.r}`}><div className={s.gk}>Boarding · today</div><div className={s.gv}>{pomo.sessionsToday} focus burns</div></div>
-              </div>
+              )}
             </div>
             <div className={s.perf}><div className={s.perfDash} /></div>
             <div className={s.passBottom}>
@@ -270,16 +276,6 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
           </div>
 
           <div className={s.colB}>
-          {nextIdx >= 0 && cur.goals[nextIdx + 1] && (
-            <>
-              <div className={s.sec}><h3>After that</h3><span className={s.n}>CKPT {String(nextIdx + 2).padStart(2, "0")}</span></div>
-              <div className={s.nextrow}>
-                <div><div className={s.t}>{cur.goals[nextIdx + 1]}</div><div className={s.s}>{gateOf(cur.goals[nextIdx + 1])} · {cur.month}</div></div>
-                <div className={s.lk}>{cur.shortMonth.toUpperCase()}</div>
-              </div>
-            </>
-          )}
-
           <div className={s.sec}><h3>Finances · {format(now, "MMMM")}</h3><button className={s.n} style={{ background: "none", border: "none", cursor: "pointer" }} onClick={() => setFinancesOpen(true)}>Manage ›</button></div>
           <button className={s.finCard} style={{ width: "100%", cursor: "pointer" }} onClick={() => setFinancesOpen(true)}>
             <div><div className={s.finK}>Income</div><div className={s.finV} style={{ color: "var(--ok)" }}>₹{totalIncome.toFixed(0)}</div></div>
@@ -293,7 +289,7 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
 
       {/* ============ CHART ============ */}
       {tab === "chart" && (
-        <ChartView chartIdx={chartIdx} setChartIdx={setChartIdx} isDone={isDone} onToggle={async (mk, i) => { await toggleGoal(mk, i); reloadGoals(); }} />
+        <ChartView chartIdx={chartIdx} setChartIdx={setChartIdx} sprint={sprint} coreDone={coreDone} onToggleCore={toggleCore} onOpenPlan={() => goTab("tasks")} />
       )}
 
       {/* ============ PLAN ============ */}
@@ -447,22 +443,53 @@ function Check() {
   return <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#000" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>;
 }
 
-// ---- constellation renderer ----
-function ConstellationSvg({ month, isDone, interactive, onStar }: {
-  month: (typeof roadmap)[number];
-  isDone: (mk: string, i: number) => boolean;
+// ---- one lane row on the boarding pass ----
+function LaneRow({ lane, onOpen, onToggleCore }: {
+  lane: Lane; onOpen: () => void; onToggleCore: (key: string) => void;
+}) {
+  const ck = lane.checkpoints[lane.currentIdx];
+  const allDone = lane.total > 0 && lane.solved >= lane.total;
+  return (
+    <div className={s.lane}>
+      <div className={s.laneTop}>
+        <span className={s.laneName}><i style={{ background: LANE_COLOR[lane.key] }} />{lane.label}</span>
+        <span className={s.laneCount}>{lane.solved}/{lane.total}</span>
+      </div>
+      <div className={s.laneMid}>
+        {lane.key === "core" && ck && (
+          <button className={`${s.laneChk} ${ck.done ? s.laneChkOn : ""}`} onClick={() => onToggleCore(ck.key)} aria-label="Toggle milestone">{ck.done && <Check />}</button>
+        )}
+        <div className={s.laneCk}>
+          {allDone ? <span className={s.laneDoneMsg}>Lane cleared ✦</span> : ck ? <>{ck.title}{ck.sub && <small> · {ck.sub}</small>}</> : "—"}
+        </div>
+        {lane.key !== "core" && <button className={s.laneAct} onClick={onOpen}>Open →</button>}
+      </div>
+      <div className={s.laneBar}><i style={{ width: `${lane.pct}%`, background: LANE_COLOR[lane.key] }} /></div>
+    </div>
+  );
+}
+
+// ---- constellation renderer (stars coloured by lane, filled = cleared) ----
+function ConstellationSvg({ monthName, cks, interactive, onStar, selIdx }: {
+  monthName: string;
+  cks: FlatCk[];
   interactive: boolean;
   onStar?: (i: number) => void;
+  selIdx?: number;
 }) {
-  const mk = monthKeyOf(month);
-  const shape = CONSTELLATIONS[CONSTELLATION[month.month]];
-  const n = month.goals.length;
-  const nextIdx = month.goals.findIndex((_, i) => !isDone(mk, i));
-  const statusOf = (i: number): CkStatus => isDone(mk, i) ? "done" : i === nextIdx ? "current" : "next";
-  const color = { done: "#c9ced8", current: "#ffffff", next: "#565b66" };
+  const shape = CONSTELLATIONS[CONSTELLATION[monthName]];
+  const n = cks.length;
+  const currentIdx = cks.findIndex((c) => !c.done);
+  const activeIdx = selIdx ?? (currentIdx >= 0 ? currentIdx : 0);
   const rOf = { done: 4, current: 6, next: 3.4 };
+  const statusOf = (i: number): CkStatus => cks[i]?.done ? "done" : i === currentIdx ? "current" : "next";
+  const fillOf = (i: number) => {
+    const st = statusOf(i);
+    if (st === "current") return "#ffffff";
+    if (st === "done") return LANE_COLOR[cks[i].lane];
+    return "#565b66";
+  };
 
-  // Checkpoint positions come from the real figure; overflow falls back to a scatter.
   const cp: [number, number][] = [];
   for (let i = 0; i < n; i++) cp.push(shape?.stars[i] ?? overflowPoint(i));
   const decorative = shape ? shape.stars.slice(n) : [];
@@ -472,18 +499,20 @@ function ConstellationSvg({ month, isDone, interactive, onStar }: {
     <svg viewBox="0 0 300 320" preserveAspectRatio={interactive ? "xMidYMid meet" : "xMidYMid slice"}>
       {(shape?.lines ?? []).map(([a, b], i) => {
         const pa = allStars[a], pb = allStars[b]; if (!pa || !pb) return null;
-        const bright = a < n && b < n && isDone(mk, a) && isDone(mk, b);
+        const bright = a < n && b < n && !!cks[a]?.done && !!cks[b]?.done;
         return <line key={i} x1={pa[0]} y1={pa[1]} x2={pb[0]} y2={pb[1]} stroke={bright ? "#6a6f79" : "#2a2f38"} strokeWidth={1} strokeDasharray={bright ? "" : "3 5"} />;
       })}
       {decorative.map((p, j) => <circle key={`d${j}`} cx={p[0]} cy={p[1]} r={2.6} fill="#3a3f48" />)}
       {cp.map((p, i) => {
         const st = statusOf(i);
         const r = interactive ? rOf[st] : rOf[st] * 0.85;
+        const isSel = interactive && i === activeIdx;
         return (
           <g key={i} onClick={() => interactive && onStar?.(i)} style={{ cursor: interactive ? "pointer" : "default" }}>
             {interactive && <circle cx={p[0]} cy={p[1]} r={16} fill="transparent" />}
-            {st === "current" && <circle cx={p[0]} cy={p[1]} r={9} fill="none" stroke="#fff" strokeWidth={1} opacity={0.5}><animate attributeName="r" values="9;15;9" dur="2.6s" repeatCount="indefinite" /><animate attributeName="opacity" values=".55;0;.55" dur="2.6s" repeatCount="indefinite" /></circle>}
-            <circle cx={p[0]} cy={p[1]} r={r} fill={color[st]} />
+            {isSel && <circle cx={p[0]} cy={p[1]} r={10} fill="none" stroke="#fff" strokeWidth={1} opacity={0.85} />}
+            {st === "current" && !isSel && <circle cx={p[0]} cy={p[1]} r={9} fill="none" stroke="#fff" strokeWidth={1} opacity={0.5}><animate attributeName="r" values="9;15;9" dur="2.6s" repeatCount="indefinite" /><animate attributeName="opacity" values=".55;0;.55" dur="2.6s" repeatCount="indefinite" /></circle>}
+            <circle cx={p[0]} cy={p[1]} r={r} fill={fillOf(i)} />
           </g>
         );
       })}
@@ -491,25 +520,33 @@ function ConstellationSvg({ month, isDone, interactive, onStar }: {
   );
 }
 
-function ChartView({ chartIdx, setChartIdx, isDone, onToggle }: {
+const LANE_LABEL: Record<LaneKey, string> = { dsa: "DSA", ai: "AI · 100x", core: "Core CS" };
+
+function ChartView({ chartIdx, setChartIdx, sprint, coreDone, onToggleCore, onOpenPlan }: {
   chartIdx: number;
   setChartIdx: (i: number) => void;
-  isDone: (mk: string, i: number) => boolean;
-  onToggle: (mk: string, i: number) => void;
+  sprint: SprintState | null;
+  coreDone: (key: string) => boolean;
+  onToggleCore: (key: string) => void;
+  onOpenPlan: () => void;
 }) {
   const [sel, setSel] = useState<number | null>(null);
   const month = roadmap[chartIdx];
-  const mk = monthKeyOf(month);
-  const nextIdx = month.goals.findIndex((_, i) => !isDone(mk, i));
-  const selIdx = sel ?? (nextIdx >= 0 ? nextIdx : 0);
-  const selStatus: CkStatus = isDone(mk, selIdx) ? "done" : selIdx === nextIdx ? "current" : "next";
-  const statusLabel = { done: "Cleared", current: "In transit", next: "Upcoming" }[selStatus];
+  const monthISO = `${month.year}-${String(MONTH_NAMES.indexOf(month.month) + 1).padStart(2, "0")}`;
+  const laneData = sprint ? buildLanes(sprint, monthISO, coreDone) : null;
+  const cks: FlatCk[] = laneData
+    ? laneData.lanes.flatMap((l) => l.checkpoints.map((c) => ({ key: c.key, title: c.title, sub: c.sub, done: c.done, lane: l.key })))
+    : [];
+  const currentIdx = cks.findIndex((c) => !c.done);
+  const selIdx = sel ?? (currentIdx >= 0 ? currentIdx : 0);
+  const selCk = cks[selIdx];
+  const statusLabel = selCk?.done ? "Cleared" : selIdx === currentIdx ? "In transit" : "Upcoming";
 
   return (
     <div className={s.view}>
       <div className={s.label} style={{ marginBottom: 8 }}>The voyage</div>
       <h2 className={s.h2}>Star Chart</h2>
-      <p className={s.pLead}>Every month is a real constellation. Each star is a checkpoint — tap to inspect or clear.</p>
+      <p className={s.pLead}>Two lanes run in parallel — DSA and AI advance as you clear problems in the Plan; Core CS you tick yourself. Tap a star to inspect.</p>
       <div className={s.mtabs}>
         {roadmap.map((m, i) => (
           <button key={i} className={`${s.mtab} ${i === chartIdx ? s.mtabOn : ""}`} onClick={() => { setChartIdx(i); setSel(null); }}>
@@ -517,18 +554,32 @@ function ChartView({ chartIdx, setChartIdx, isDone, onToggle }: {
           </button>
         ))}
       </div>
+      <div className={s.legend}>
+        <span><i style={{ background: LANE_COLOR.dsa }} />DSA</span>
+        <span><i style={{ background: LANE_COLOR.ai }} />AI</span>
+        <span><i style={{ background: LANE_COLOR.core }} />Core CS</span>
+        <span><i style={{ background: "#ffffff" }} />Current</span>
+      </div>
       <div className={s.deskCols}>
         <div className={s.colA}>
           <div className={s.constel}>
-            <ConstellationSvg month={month} isDone={isDone} interactive onStar={setSel} />
+            {cks.length > 0
+              ? <ConstellationSvg monthName={month.month} cks={cks} interactive onStar={setSel} selIdx={selIdx} />
+              : <p className={s.appEmpty} style={{ paddingTop: 60 }}>Charting…</p>}
           </div>
         </div>
         <div className={s.colB}>
           <div className={s.cdetail}>
-            <div className={s.cdM}><span>{CONSTELLATION[month.month] || month.theme} · {month.month}</span><span>★ {selIdx + 1}</span></div>
-            <div className={s.cdT}>{month.goals[selIdx]}</div>
-            <div className={s.cdD}>{gateOf(month.goals[selIdx])} checkpoint · month goal {selIdx + 1} of {month.goals.length}</div>
-            <button className={s.cdSt} onClick={() => onToggle(mk, selIdx)}>{statusLabel} — tap to {isDone(mk, selIdx) ? "reopen" : "clear"}</button>
+            {selCk ? (
+              <>
+                <div className={s.cdM}><span style={{ color: LANE_COLOR[selCk.lane] }}>{LANE_LABEL[selCk.lane]} · {month.month}</span><span>★ {selIdx + 1}</span></div>
+                <div className={s.cdT}>{selCk.title}</div>
+                <div className={s.cdD}>{selCk.sub ? `${selCk.sub} · ` : ""}{statusLabel}</div>
+                {selCk.lane === "core"
+                  ? <button className={s.cdSt} onClick={() => onToggleCore(selCk.key)}>{selCk.done ? "Cleared — tap to reopen" : "Mark milestone done"}</button>
+                  : <button className={s.cdSt} onClick={onOpenPlan}>Open in Plan →</button>}
+              </>
+            ) : <div className={s.cdD}>Select a checkpoint.</div>}
           </div>
         </div>
       </div>

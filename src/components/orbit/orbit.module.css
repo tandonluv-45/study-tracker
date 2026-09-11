@@ -73,6 +73,28 @@
 .bl{font-family:var(--fontM);font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;text-align:right;}
 .bl b{display:block;font-family:var(--fontD);font-weight:700;font-size:21px;color:var(--text);letter-spacing:-.5px;}
 
+/* boarding-pass lanes */
+.lanes{display:flex;flex-direction:column;gap:15px;}
+.laneTop{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+.laneName{display:flex;align-items:center;gap:7px;font-family:var(--fontM);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.laneName i{width:7px;height:7px;border-radius:50%;display:block;flex-shrink:0;}
+.laneCount{font-family:var(--fontM);font-size:11px;color:var(--dim);}
+.laneMid{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.laneCk{flex:1;min-width:0;font-size:14px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.laneCk small{color:var(--dim);font-family:var(--fontM);font-size:10px;font-weight:400;}
+.laneDoneMsg{color:var(--ok);font-family:var(--fontM);font-size:12px;letter-spacing:.5px;}
+.laneAct{flex-shrink:0;background:none;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-family:var(--fontM);font-size:10px;letter-spacing:.5px;padding:6px 11px;cursor:pointer;}
+.laneAct:hover{color:var(--text);border-color:var(--text);}
+.laneChk{width:22px;height:22px;flex-shrink:0;border:1.5px solid var(--dim);border-radius:6px;background:none;display:grid;place-items:center;cursor:pointer;}
+.laneChkOn{background:var(--text);border-color:var(--text);}
+.laneBar{height:3px;background:var(--line);border-radius:3px;overflow:hidden;}
+.laneBar i{display:block;height:100%;border-radius:3px;transition:width .4s;}
+
+/* star-chart lane legend */
+.legend{display:flex;gap:16px;margin:12px 0 2px;flex-wrap:wrap;}
+.legend span{display:flex;align-items:center;gap:6px;font-family:var(--fontM);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+.legend i{width:7px;height:7px;border-radius:50%;display:block;}
+
 .nextrow{padding:14px 18px;border:1px solid var(--lineSoft);border-radius:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;}
 .nextrow .t{font-family:var(--fontD);font-weight:600;font-size:14px;}
 .nextrow .s{font-family:var(--fontM);font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:.5px;}
