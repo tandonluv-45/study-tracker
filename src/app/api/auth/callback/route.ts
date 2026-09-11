@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findOrCreateUser } from "@/lib/auth";
-import { createSessionCookie } from "@/lib/session";
+import { createSessionCookie, getSession } from "@/lib/session";
 import { initDB } from "@/lib/db";
+import { saveGoogleTokens } from "@/lib/googleTokens";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
@@ -39,20 +40,14 @@ export async function GET(request: NextRequest) {
   const tokens = await tokenRes.json();
 
   if (state === "calendar") {
-    // Calendar linking mode — store tokens in localStorage via script
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <body>
-        <script>
-          localStorage.setItem('google_access_token', '${tokens.access_token}');
-          ${tokens.refresh_token ? `localStorage.setItem('google_refresh_token', '${tokens.refresh_token}');` : ""}
-          window.location.href = '/';
-        </script>
-      </body>
-      </html>
-    `;
-    return new NextResponse(html, { headers: { "Content-Type": "text/html" } });
+    // Calendar linking mode — store tokens server-side, tied to the logged-in account.
+    // This runs in the same browser that holds the session cookie, so getSession() works.
+    const user = await getSession();
+    if (!user) {
+      return NextResponse.redirect(new URL("/?error=login_first", request.url));
+    }
+    await saveGoogleTokens(user.id, tokens);
+    return NextResponse.redirect(new URL("/?calendar=connected", request.url));
   }
 
   // Login mode — get user info and create session

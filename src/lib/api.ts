@@ -164,6 +164,12 @@ export async function fetchExpenses(month?: string): Promise<Expense[]> {
   return res.json();
 }
 
+export async function fetchExpensesRange(from: string, to: string): Promise<Expense[]> {
+  const res = await fetch(`${BASE}/api/expenses?from=${from}&to=${to}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function createExpense(expense: Omit<Expense, "id" | "createdAt">): Promise<Expense> {
   const res = await fetch(`${BASE}/api/expenses`, {
     method: "POST",
@@ -191,6 +197,23 @@ export async function fetchIncomes(month?: string): Promise<Income[]> {
   const res = await fetch(url);
   if (!res.ok) return [];
   return res.json();
+}
+
+export async function fetchIncomesRange(from: string, to: string): Promise<Income[]> {
+  const res = await fetch(`${BASE}/api/incomes?from=${from}&to=${to}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+// Google Calendar (server-side account link)
+export interface CalEvent { id: string; summary: string; location?: string; start: string; end: string; allDay?: boolean }
+export async function fetchCalendar(timeMin: string, timeMax: string): Promise<{ connected: boolean; events: CalEvent[] }> {
+  const res = await fetch(`${BASE}/api/calendar?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`);
+  if (!res.ok) return { connected: false, events: [] };
+  return res.json();
+}
+export async function disconnectCalendar(): Promise<void> {
+  await fetch(`${BASE}/api/calendar`, { method: "DELETE" });
 }
 
 export async function createIncome(income: Omit<Income, "id" | "createdAt">): Promise<Income> {

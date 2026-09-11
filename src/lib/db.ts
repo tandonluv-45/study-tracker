@@ -121,6 +121,15 @@ export async function initDB() {
     updated_at TEXT NOT NULL
   )`);
 
+  // Google Calendar tokens, per user — connect once (on web), read anywhere (incl. the app).
+  await db.execute(`CREATE TABLE IF NOT EXISTS google_tokens (
+    user_id TEXT PRIMARY KEY,
+    access_token TEXT,
+    refresh_token TEXT,
+    expires_at INTEGER,
+    updated_at TEXT NOT NULL
+  )`);
+
   await db.execute(`CREATE TABLE IF NOT EXISTS user_roadmap (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,

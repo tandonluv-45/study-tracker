@@ -9,8 +9,15 @@ export async function GET(request: NextRequest) {
   await initDB();
 
   const month = request.nextUrl.searchParams.get("month");
+  const from = request.nextUrl.searchParams.get("from");
+  const to = request.nextUrl.searchParams.get("to");
   let result;
-  if (month) {
+  if (from && to) {
+    result = await db.execute({
+      sql: "SELECT * FROM incomes WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date DESC, created_at DESC",
+      args: [user.id, from, to],
+    });
+  } else if (month) {
     result = await db.execute({
       sql: "SELECT * FROM incomes WHERE user_id = ? AND date LIKE ? ORDER BY date DESC, created_at DESC",
       args: [user.id, `${month}%`],

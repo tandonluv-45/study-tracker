@@ -13,33 +13,6 @@
   font-family:var(--fontD); display:flex; flex-direction:column;
   overflow:hidden;
 }
-/* ---- desktop / wide web: float the app as a device frame in space ---- */
-@media (min-width:760px){
-  .shell{
-    display:flex; align-items:center; justify-content:center;
-    background:
-      radial-gradient(90% 70% at 50% -10%, rgba(155,123,255,.06), transparent 60%),
-      radial-gradient(120% 120% at 50% 8%, #0e1119 0%, #08090C 52%, #050608 100%);
-  }
-  .root{
-    position:relative; inset:auto;
-    width:min(430px, 96vw);
-    height:min(896px, calc(100vh - 40px));
-    border:1px solid var(--line);
-    border-radius:36px;
-    box-shadow:0 40px 120px rgba(0,0,0,.65), 0 0 0 6px rgba(255,255,255,.015);
-  }
-  .shell::before{
-    content:"ORBIT"; position:fixed; left:34px; bottom:28px;
-    font-family:var(--fontM); font-size:11px; letter-spacing:5px;
-    color:rgba(255,255,255,.16); pointer-events:none;
-  }
-  .shell::after{
-    content:"FLIGHT DECK / WEB"; position:fixed; right:34px; bottom:28px;
-    font-family:var(--fontM); font-size:11px; letter-spacing:3px;
-    color:rgba(255,255,255,.10); pointer-events:none;
-  }
-}
 .stars{position:absolute;top:0;left:0;width:100%;height:100%;display:block;z-index:0;}
 .view{position:absolute;inset:0;bottom:76px;overflow-y:auto;overflow-x:hidden;z-index:1;
   padding:calc(env(safe-area-inset-top) + 18px) 22px 24px;scrollbar-width:none;}
@@ -244,7 +217,8 @@
 .calCell{aspect-ratio:1;border-radius:10px;border:1px solid transparent;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:var(--text);background:none;position:relative;}
 .calCellMuted{color:var(--dim);}
 .calCellSel{border-color:var(--text);background:rgba(255,255,255,.06);}
-.calDot{width:4px;height:4px;border-radius:50%;background:var(--ok);position:absolute;bottom:6px;left:50%;transform:translateX(-50%);}
+.calDots{position:absolute;bottom:5px;left:0;right:0;display:flex;gap:3px;justify-content:center;}
+.calDot{width:4px;height:4px;border-radius:50%;background:var(--ok);}
 
 /* app picker popup */
 .modal{position:absolute;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;animation:modalIn .25s ease;}
@@ -253,7 +227,10 @@
 .modalTitle{font-family:var(--fontD);font-weight:600;font-size:18px;}
 .modalTitle small{display:block;font-family:var(--fontM);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:3px;}
 .modalDone{background:var(--text);color:#000;border:none;border-radius:20px;font-family:var(--fontM);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:9px 16px;cursor:pointer;font-weight:700;}
-.modalBody{flex:1;overflow-y:auto;padding:14px 22px 40px;scrollbar-width:thin;}
+.modalBody{flex:1;min-height:0;overflow-y:auto;padding:14px 22px 40px;scrollbar-width:thin;}
+.finMeta{font-family:var(--fontM);font-size:10px;color:var(--dim);letter-spacing:.5px;margin-top:9px;text-align:center;}
+/* desktop-only chrome — hidden on mobile */
+.side{display:none;}
 .modalList{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
 .appRow{display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:12px;border:1px solid var(--line);background:none;color:var(--muted);cursor:pointer;width:100%;text-align:left;font-size:14px;}
 .appRow span:last-child{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -267,3 +244,73 @@
 .fab{margin-top:-24px;}
 .fabCircle{width:54px;height:54px;border-radius:50%;background:var(--text);display:grid;place-items:center;box-shadow:0 6px 22px rgba(255,255,255,.18);margin-bottom:3px;}
 .fabCircle svg{width:22px;height:22px;stroke:#000;stroke-width:1.7;}
+/* ================= DESKTOP / WIDE WEB — real app layout ================= */
+@media (min-width:900px){
+  .shell{
+    background:
+      radial-gradient(80% 60% at 78% -8%, rgba(155,123,255,.05), transparent 60%),
+      radial-gradient(120% 120% at 50% 6%, #0d1017 0%, #08090C 55%, #060709 100%);
+  }
+
+  /* left sidebar */
+  .side{
+    display:flex; flex-direction:column; position:absolute; left:0; top:0; bottom:0;
+    width:238px; padding:30px 20px 24px; z-index:4;
+    border-right:1px solid var(--lineSoft);
+    background:linear-gradient(180deg, rgba(14,16,21,.6), rgba(8,9,12,.35));
+    backdrop-filter:blur(10px);
+  }
+  .sideWm{font-family:var(--fontD);font-weight:700;font-size:20px;letter-spacing:.5px;padding:0 10px 26px;}
+  .sideWm span{color:var(--dim);}
+  .sideNav{display:flex;flex-direction:column;gap:4px;}
+  .sideBtn{display:flex;align-items:center;gap:13px;padding:12px 12px;border-radius:11px;border:none;
+    background:none;color:var(--muted);font-family:var(--fontD);font-size:14px;font-weight:500;cursor:pointer;
+    text-align:left;transition:background .15s,color .15s;}
+  .sideBtn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.6;flex-shrink:0;}
+  .sideBtn:hover{color:var(--text);background:rgba(255,255,255,.03);}
+  .sideOn{color:var(--text);background:rgba(255,255,255,.07);}
+  .sideFocus{margin-top:auto;display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:13px;
+    border:1px solid var(--line);background:var(--text);color:#000;font-family:var(--fontD);font-weight:600;
+    font-size:13.5px;cursor:pointer;}
+  .sideFocus svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;}
+  .sideFocus:hover{opacity:.9;}
+  .sideFoot{margin-top:18px;padding:0 6px;font-family:var(--fontM);font-size:11px;color:var(--muted);letter-spacing:.5px;}
+  .sideFoot span{display:block;color:var(--dim);font-size:10px;margin-top:3px;text-transform:uppercase;letter-spacing:1px;}
+
+  .nav{display:none;}
+
+  /* content region, centred with breathing room */
+  .view{left:238px;right:0;bottom:0;padding:40px 52px 64px;}
+  .view > *{max-width:1140px;margin-left:auto;margin-right:auto;}
+  .mast{display:none;} /* wordmark lives in the sidebar now */
+
+  /* two-column bento */
+  .deskCols{display:grid;grid-template-columns:1.5fr 1fr;gap:32px;align-items:start;}
+  .colB{position:sticky;top:8px;}
+
+  /* bigger hero + constellation on desktop */
+  .hero{height:220px;}
+  .constel{height:520px;}
+
+  /* stat + more grids use the width */
+  .stats{grid-template-columns:repeat(4,1fr);max-width:1140px;}
+  .moreGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .moreRow{margin-top:0;}
+  .lockSec{max-width:560px;}
+
+  /* modals become centred dialogs (box-shadow spread dims the rest) */
+  .modal{
+    inset:auto; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:min(600px,94vw); height:auto; max-height:88vh;
+    border:1px solid var(--line); border-radius:22px;
+    box-shadow:0 0 0 100vmax rgba(4,5,8,.62), 0 40px 110px rgba(0,0,0,.6);
+    animation:dlgIn .2s ease;
+  }
+  @keyframes dlgIn{from{opacity:0;transform:translate(-50%,-46%);}to{opacity:1;transform:translate(-50%,-50%);}}
+}
+
+/* wider desktops: allow a touch more room */
+@media (min-width:1500px){
+  .view > *{max-width:1280px;}
+  .stats{max-width:1280px;}
+}

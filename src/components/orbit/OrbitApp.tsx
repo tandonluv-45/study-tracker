@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { roadmap } from "@/lib/roadmap-data";
 import {
-  fetchGoals, toggleGoal, fetchExpenses, fetchIncomes, createExpense, createIncome,
+  fetchGoals, toggleGoal, fetchExpenses, fetchIncomes,
   type GoalCompletion, type UserSession, type Expense, type Income,
 } from "@/lib/api";
 import SprintPlan from "./SprintPlan";
 import OrbitTimetable from "./OrbitTimetable";
 import OrbitCalendar from "./OrbitCalendar";
+import OrbitFinances from "./OrbitFinances";
 import { usePomodoroContext } from "@/lib/PomodoroContext";
 import {
   isNativeApp, BLOCKABLE_APPS, getLockEnabled, setLockEnabled,
@@ -28,11 +29,6 @@ const CONSTELLATION: Record<string, string> = {
   // other months (outside the sprint) still map to a drawable shape
   March: "Leo", April: "Pegasus", May: "Cygnus", June: "Orion", July: "Gemini", August: "Scorpius",
 };
-
-const EXP_CATS = [
-  { key: "food", label: "Food" }, { key: "shopping", label: "Shopping" }, { key: "bills", label: "Bills" },
-  { key: "travel", label: "Travel" }, { key: "entertainment", label: "Fun" }, { key: "other", label: "Other" },
-];
 
 type Tab = "pass" | "chart" | "tasks" | "you";
 type CkStatus = "done" | "current" | "next";
@@ -70,26 +66,6 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = user?.name?.split(" ")[0] || "Commander";
-  const todayISO = format(new Date(), "yyyy-MM-dd");
-
-  const [finType, setFinType] = useState<"expense" | "income">("expense");
-  const [finTitle, setFinTitle] = useState("");
-  const [finAmount, setFinAmount] = useState("");
-  const [finCat, setFinCat] = useState("food");
-  const addFinance = async () => {
-    const amt = parseFloat(finAmount);
-    if (!finTitle.trim() || !amt) return;
-    if (finType === "expense") await createExpense({ title: finTitle.trim(), amount: amt, date: todayISO, category: finCat });
-    else await createIncome({ title: finTitle.trim(), amount: amt, date: todayISO });
-    setFinTitle(""); setFinAmount(""); reloadFinance();
-  };
-  const recentFinance = [
-    ...expenses.map((e) => ({ ...e, kind: "expense" as const })),
-    ...incomes.map((i) => ({ ...i, kind: "income" as const })),
-  ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20);
-  const byCategory = EXP_CATS.map((c) => ({
-    ...c, amount: expenses.filter((e) => e.category === c.key).reduce((a, e) => a + e.amount, 0),
-  })).filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount);
 
   // ---- focus-lock settings ----
   const [lockEnabled, setLockEnabledS] = useState(false);
@@ -218,6 +194,30 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
     <div className={s.root}>
       <canvas ref={skyRef} className={s.stars} />
 
+      {/* ============ DESKTOP SIDEBAR ============ */}
+      <aside className={s.side}>
+        <div className={s.sideWm}>/ORBIT<span>.</span></div>
+        <div className={s.sideNav}>
+          <button className={`${s.sideBtn} ${tab === "pass" && !focusOpen ? s.sideOn : ""}`} onClick={() => goTab("pass")}>
+            <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5" /><path d="M6 9.5V20h12V9.5" /></svg>Home
+          </button>
+          <button className={`${s.sideBtn} ${tab === "chart" && !focusOpen ? s.sideOn : ""}`} onClick={() => goTab("chart")}>
+            <svg viewBox="0 0 24 24"><path d="M5 19 9 8l5 6 3-9 2 5" /><circle cx="5" cy="19" r="1.3" fill="currentColor" stroke="none" /><circle cx="17" cy="5" r="1.3" fill="currentColor" stroke="none" /></svg>Star Chart
+          </button>
+          <button className={`${s.sideBtn} ${tab === "tasks" && !focusOpen ? s.sideOn : ""}`} onClick={() => goTab("tasks")}>
+            <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4.5 6l1 1 1.5-2M4.5 12l1 1 1.5-2M4.5 18l1 1 1.5-2" /></svg>Plan
+          </button>
+          <button className={`${s.sideBtn} ${tab === "you" && !focusOpen ? s.sideOn : ""}`} onClick={() => goTab("you")}>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5" /></svg>You
+          </button>
+        </div>
+        <button className={`${s.sideFocus} ${focusOpen ? s.sideOn : ""}`} onClick={() => setFocusOpen(true)}>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none" /></svg>
+          Focus session
+        </button>
+        <div className={s.sideFoot}>Cmdr. {firstName}<span>Sector ECE-3</span></div>
+      </aside>
+
       {/* ============ PASS ============ */}
       {tab === "pass" && (
         <div className={s.view}>
@@ -232,6 +232,8 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
             <div className={s.label} style={{ color: "var(--dim)" }}>{format(now, "EEE dd MMM")}</div>
           </div>
 
+          <div className={s.deskCols}>
+          <div className={s.colA}>
           <div className={s.hero}>
             <ConstellationSvg month={cur} isDone={isDone} interactive={false} />
             <div className={s.heroCap}><div className={s.label}>Now charting</div><h2>{CONSTELLATION[cur.month] || cur.theme}</h2></div>
@@ -265,7 +267,9 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
               <div className={s.bl}><b>{pct}%</b>Charted</div>
             </div>
           </div>
+          </div>
 
+          <div className={s.colB}>
           {nextIdx >= 0 && cur.goals[nextIdx + 1] && (
             <>
               <div className={s.sec}><h3>After that</h3><span className={s.n}>CKPT {String(nextIdx + 2).padStart(2, "0")}</span></div>
@@ -282,6 +286,8 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
             <div><div className={s.finK}>Spent</div><div className={s.finV} style={{ color: "var(--red)" }}>₹{totalSpent.toFixed(0)}</div></div>
             <div><div className={s.finK}>Balance</div><div className={s.finV}>₹{balance.toFixed(0)}</div></div>
           </button>
+          </div>
+          </div>
         </div>
       )}
 
@@ -307,10 +313,12 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
           </div>
 
           <div className={s.sec}><h3>More</h3></div>
+          <div className={s.moreGrid}>
           <button className={s.moreRow} onClick={() => setFinancesOpen(true)}>Finances <span>₹{balance.toFixed(0)} ›</span></button>
           <button className={s.moreRow} onClick={() => setCalendarOpen(true)}>Calendar <span>›</span></button>
           <button className={s.moreRow} onClick={() => setTimetableOpen(true)}>Timetable <span>›</span></button>
           <a className={s.moreRow} href="/?classic=1" style={{ opacity: 0.6 }}>Classic tracker <span>›</span></a>
+          </div>
 
           {isNativeApp() && (
             <div className={s.lockSec}>
@@ -407,75 +415,7 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
       })()}
 
       {/* ============ FINANCES POPUP ============ */}
-      {financesOpen && (
-        <div className={s.modal}>
-          <div className={s.modalHead}>
-            <div className={s.modalTitle}>Finances<small>{format(now, "MMMM yyyy")}</small></div>
-            <button className={s.modalDone} onClick={() => setFinancesOpen(false)}>Done</button>
-          </div>
-          <div className={s.modalBody}>
-            <div className={s.finCard} style={{ marginTop: 0 }}>
-              <div><div className={s.finK}>Income</div><div className={s.finV} style={{ color: "var(--ok)" }}>₹{totalIncome.toFixed(0)}</div></div>
-              <div><div className={s.finK}>Spent</div><div className={s.finV} style={{ color: "var(--red)" }}>₹{totalSpent.toFixed(0)}</div></div>
-              <div><div className={s.finK}>Balance</div><div className={s.finV}>₹{balance.toFixed(0)}</div></div>
-            </div>
-
-            {byCategory.length > 0 && (
-              <>
-                <div className={s.sec}><h3>Where it went</h3><span className={s.n}>₹{totalSpent.toFixed(0)}</span></div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-                  {byCategory.map((c) => {
-                    const pct = totalSpent ? Math.round((c.amount / totalSpent) * 100) : 0;
-                    return (
-                      <div key={c.key}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
-                          <span>{c.label}</span><span style={{ color: "var(--muted)", fontFamily: "var(--fontM)", fontSize: 11 }}>₹{c.amount.toFixed(0)} · {pct}%</span>
-                        </div>
-                        <div className={s.mprogBar}><i style={{ width: `${pct}%` }} /></div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            <div className={s.finForm}>
-              <div className={s.finToggle}>
-                <button className={finType === "expense" ? s.finTogOn : ""} onClick={() => setFinType("expense")}>Expense</button>
-                <button className={finType === "income" ? s.finTogOn : ""} onClick={() => setFinType("income")}>Income</button>
-              </div>
-              <input className={s.appSearch} value={finTitle} onChange={(e) => setFinTitle(e.target.value)} placeholder={finType === "expense" ? "What did you spend on?" : "Income source"} />
-              {finType === "expense" && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                  {EXP_CATS.map((c) => (
-                    <button key={c.key} className={`${s.chip} ${finCat === c.key ? s.chipOn : ""}`} style={{ flex: "0 0 auto", padding: "7px 11px" }} onClick={() => setFinCat(c.key)}>{c.label}</button>
-                  ))}
-                </div>
-              )}
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                <input className={s.appSearch} style={{ marginTop: 0, flex: 1 }} value={finAmount} onChange={(e) => setFinAmount(e.target.value)} type="number" placeholder="Amount ₹" />
-                <button className={s.modalDone} onClick={addFinance}>Add</button>
-              </div>
-            </div>
-            <div className={s.sec}><h3>Recent</h3></div>
-            {recentFinance.length === 0 ? <p className={s.appEmpty}>No transactions yet.</p> : (
-              <div className={s.modalList}>
-                {recentFinance.map((item) => (
-                  <div key={`${item.kind}-${item.id}`} className={s.finRow}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className={s.pT}>{item.title}</div>
-                      <div className={s.pSub}>{format(new Date(item.date.replace(/-/g, "/")), "dd MMM")}{item.kind === "expense" && item.category ? ` · ${EXP_CATS.find((c) => c.key === item.category)?.label || item.category}` : ""}</div>
-                    </div>
-                    <div style={{ fontFamily: "var(--fontM)", fontWeight: 700, fontSize: 13, color: item.kind === "income" ? "var(--ok)" : "var(--red)" }}>
-                      {item.kind === "income" ? "+" : "-"}₹{item.amount.toFixed(0)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {financesOpen && <OrbitFinances onClose={() => setFinancesOpen(false)} onChange={reloadFinance} />}
 
       {timetableOpen && <OrbitTimetable onClose={() => setTimetableOpen(false)} />}
       {calendarOpen && <OrbitCalendar onClose={() => setCalendarOpen(false)} />}
@@ -577,14 +517,20 @@ function ChartView({ chartIdx, setChartIdx, isDone, onToggle }: {
           </button>
         ))}
       </div>
-      <div className={s.constel}>
-        <ConstellationSvg month={month} isDone={isDone} interactive onStar={setSel} />
-      </div>
-      <div className={s.cdetail}>
-        <div className={s.cdM}><span>{CONSTELLATION[month.month] || month.theme} · {month.month}</span><span>★ {selIdx + 1}</span></div>
-        <div className={s.cdT}>{month.goals[selIdx]}</div>
-        <div className={s.cdD}>{gateOf(month.goals[selIdx])} checkpoint · month goal {selIdx + 1} of {month.goals.length}</div>
-        <button className={s.cdSt} onClick={() => onToggle(mk, selIdx)}>{statusLabel} — tap to {isDone(mk, selIdx) ? "reopen" : "clear"}</button>
+      <div className={s.deskCols}>
+        <div className={s.colA}>
+          <div className={s.constel}>
+            <ConstellationSvg month={month} isDone={isDone} interactive onStar={setSel} />
+          </div>
+        </div>
+        <div className={s.colB}>
+          <div className={s.cdetail}>
+            <div className={s.cdM}><span>{CONSTELLATION[month.month] || month.theme} · {month.month}</span><span>★ {selIdx + 1}</span></div>
+            <div className={s.cdT}>{month.goals[selIdx]}</div>
+            <div className={s.cdD}>{gateOf(month.goals[selIdx])} checkpoint · month goal {selIdx + 1} of {month.goals.length}</div>
+            <button className={s.cdSt} onClick={() => onToggle(mk, selIdx)}>{statusLabel} — tap to {isDone(mk, selIdx) ? "reopen" : "clear"}</button>
+          </div>
+        </div>
       </div>
       <div style={{ height: 80 }} />
     </div>
