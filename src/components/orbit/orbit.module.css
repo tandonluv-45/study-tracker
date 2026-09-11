@@ -147,6 +147,12 @@
 .fBtn{border:1px solid var(--line);background:none;color:var(--text);padding:13px 24px;border-radius:30px;font-family:var(--fontM);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;}
 .fBtnPrimary{background:var(--text);color:#000;border:none;}
 .fLock{margin-top:26px;font-family:var(--fontM);font-size:10px;color:var(--violet);letter-spacing:1px;}
+.fStats{display:flex;margin-top:40px;border:1px solid var(--line);border-radius:14px;overflow:hidden;width:100%;max-width:320px;}
+.fStats>div{flex:1;padding:14px 8px;text-align:center;border-right:1px solid var(--lineSoft);}
+.fStats>div:last-child{border-right:none;}
+.fStats b{display:block;font-family:var(--fontD);font-weight:700;font-size:19px;}
+.fStats span{font-family:var(--fontM);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:4px;display:block;}
+.fArrived{margin-top:20px;font-family:var(--fontM);font-size:11px;letter-spacing:1px;color:var(--ok);animation:modalIn .4s ease;}
 
 /* focus-lock settings (You tab) */
 .lockSec{margin-top:22px;border:1px solid var(--line);border-radius:16px;padding:16px;}
@@ -172,6 +178,20 @@
 .chipOn{border-color:var(--text);background:rgba(255,255,255,.08);color:var(--text);}
 .chipBox{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--dim);display:grid;place-items:center;flex-shrink:0;}
 .chipBoxOn{background:var(--text);border-color:var(--text);}
+
+/* finances */
+.finCard{display:flex;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:2px;}
+.finCard>div{flex:1;padding:15px 12px;border-right:1px solid var(--lineSoft);}
+.finCard>div:last-child{border-right:none;}
+.finK{font-family:var(--fontM);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);}
+.finV{font-family:var(--fontD);font-weight:700;font-size:17px;margin-top:6px;}
+.finForm{margin-top:18px;border:1px solid var(--lineSoft);border-radius:14px;padding:14px;}
+.finToggle{display:flex;gap:8px;}
+.finToggle button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;}
+.finTogOn{border-color:var(--text);color:var(--text);background:rgba(255,255,255,.06);}
+.finRow{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--lineSoft);border-radius:12px;}
+.moreRow{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border:1px solid var(--lineSoft);border-radius:14px;margin-top:10px;color:var(--text);background:none;width:100%;cursor:pointer;font-size:14px;text-decoration:none;}
+.moreRow span{font-family:var(--fontM);font-size:11px;color:var(--dim);}
 
 /* app picker popup */
 .modal{position:absolute;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;animation:modalIn .25s ease;}

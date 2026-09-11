@@ -13,18 +13,31 @@ import Timetable from "@/components/Timetable";
 import ExpenseTracker from "@/components/ExpenseTracker";
 import OrbitApp from "@/components/orbit/OrbitApp";
 import { PomodoroProvider } from "@/lib/PomodoroContext";
-import { isNativeApp } from "@/lib/focusLock";
 import { getSessionUser, type UserSession } from "@/lib/api";
+
+function OrbitLoading() {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#08090C", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center", animation: "opuls 1.4s ease-in-out infinite" }}>
+        <div style={{ fontFamily: "Archivo, sans-serif", fontWeight: 700, fontSize: 22, letterSpacing: 1, color: "#F3F4F6" }}>/ORBIT<span style={{ color: "#5B5F68" }}>.</span></div>
+        <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", color: "#8B93BD", marginTop: 8 }}>charting your voyage</div>
+      </div>
+      <style>{`@keyframes opuls{0%,100%{opacity:1}50%{opacity:.45}}`}</style>
+    </div>
+  );
+}
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [user, setUser] = useState<UserSession | null>(null);
   const [loading, setLoading] = useState(true);
-  const [orbit, setOrbit] = useState(false);
+  // Orbit is the whole experience now (web + app). ?classic=1 opens the old UI.
+  const [orbit] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return !new URLSearchParams(window.location.search).has("classic");
+  });
 
   useEffect(() => {
-    // The native Orbit app (or ?orbit=1 for preview) shows the gamified UI.
-    setOrbit(isNativeApp() || new URLSearchParams(window.location.search).has("orbit"));
     getSessionUser().then((u) => {
       if (!u) {
         window.location.href = "/login";
@@ -36,6 +49,7 @@ export default function Home() {
   }, []);
 
   if (loading) {
+    if (orbit) return <OrbitLoading />;
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

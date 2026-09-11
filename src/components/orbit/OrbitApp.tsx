@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { roadmap } from "@/lib/roadmap-data";
-import { fetchGoals, toggleGoal, type GoalCompletion, type UserSession } from "@/lib/api";
+import {
+  fetchGoals, toggleGoal, fetchExpenses, fetchIncomes, createExpense, createIncome,
+  type GoalCompletion, type UserSession, type Expense, type Income,
+} from "@/lib/api";
 import SprintPlan from "./SprintPlan";
 import { usePomodoroContext } from "@/lib/PomodoroContext";
 import {
@@ -41,8 +44,36 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   const [tab, setTab] = useState<Tab>("pass");
   const [focusOpen, setFocusOpen] = useState(false);
   const [goals, setGoals] = useState<GoalCompletion[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [financesOpen, setFinancesOpen] = useState(false);
   const reloadGoals = useCallback(() => { fetchGoals().then(setGoals); }, []);
-  useEffect(() => { reloadGoals(); }, [reloadGoals]);
+  const reloadFinance = useCallback(() => { fetchExpenses().then(setExpenses); fetchIncomes().then(setIncomes); }, []);
+  useEffect(() => { reloadGoals(); reloadFinance(); }, [reloadGoals, reloadFinance]);
+
+  const totalIncome = incomes.reduce((a, i) => a + i.amount, 0);
+  const totalSpent = expenses.reduce((a, e) => a + e.amount, 0);
+  const balance = totalIncome - totalSpent;
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const firstName = user?.name?.split(" ")[0] || "Commander";
+  const todayISO = format(new Date(), "yyyy-MM-dd");
+
+  const [finType, setFinType] = useState<"expense" | "income">("expense");
+  const [finTitle, setFinTitle] = useState("");
+  const [finAmount, setFinAmount] = useState("");
+  const addFinance = async () => {
+    const amt = parseFloat(finAmount);
+    if (!finTitle.trim() || !amt) return;
+    if (finType === "expense") await createExpense({ title: finTitle.trim(), amount: amt, date: todayISO, category: "other" });
+    else await createIncome({ title: finTitle.trim(), amount: amt, date: todayISO });
+    setFinTitle(""); setFinAmount(""); reloadFinance();
+  };
+  const recentFinance = [
+    ...expenses.map((e) => ({ ...e, kind: "expense" as const })),
+    ...incomes.map((i) => ({ ...i, kind: "income" as const })),
+  ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
 
   // ---- focus-lock settings ----
   const [lockEnabled, setLockEnabledS] = useState(false);
@@ -149,6 +180,22 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
 
   const mm = String(Math.floor(pomo.timeLeft / 60)).padStart(2, "0");
   const ss = String(pomo.timeLeft % 60).padStart(2, "0");
+  const hm = (min: number) => (min >= 60 ? `${Math.floor(min / 60)}h ${min % 60}m` : `${min}m`);
+  const focusStr = hm(pomo.sessionsToday * 25);
+  const breakStr = hm(pomo.sessionsToday * 5);
+
+  // "Arrival" moment: flag when a focus session completes while the screen is open.
+  const [justArrived, setJustArrived] = useState(false);
+  const prevSessions = useRef(0);
+  useEffect(() => {
+    if (prevSessions.current !== 0 && pomo.sessionsToday > prevSessions.current && focusOpen) {
+      setJustArrived(true);
+      const t = setTimeout(() => setJustArrived(false), 4500);
+      prevSessions.current = pomo.sessionsToday;
+      return () => clearTimeout(t);
+    }
+    prevSessions.current = pomo.sessionsToday;
+  }, [pomo.sessionsToday, focusOpen]);
 
   return (
     <div className={s.root}>
@@ -161,6 +208,11 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
             <div className={s.bars}><i style={{ height: 24 }} /><i style={{ height: 13 }} /><i style={{ height: 20 }} /><i style={{ height: 9 }} /><i style={{ height: 17 }} /></div>
             <div className={s.code}>MISSION<b>{cur.phase}</b></div>
             <div className={s.wm}>/ORBIT<span>.</span></div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "2px 0 6px" }}>
+            <div className={s.label}>{greeting}, {firstName}</div>
+            <div className={s.label} style={{ color: "var(--dim)" }}>{format(now, "EEE dd MMM")}</div>
           </div>
 
           <div className={s.hero}>
@@ -206,6 +258,13 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
               </div>
             </>
           )}
+
+          <div className={s.sec}><h3>Finances</h3><button className={s.n} style={{ background: "none", border: "none", cursor: "pointer" }} onClick={() => setFinancesOpen(true)}>Manage ›</button></div>
+          <div className={s.finCard}>
+            <div><div className={s.finK}>Income</div><div className={s.finV} style={{ color: "var(--ok)" }}>₹{totalIncome.toFixed(0)}</div></div>
+            <div><div className={s.finK}>Spent</div><div className={s.finV} style={{ color: "var(--red)" }}>₹{totalSpent.toFixed(0)}</div></div>
+            <div><div className={s.finK}>Balance</div><div className={s.finV}>₹{balance.toFixed(0)}</div></div>
+          </div>
         </div>
       )}
 
@@ -229,6 +288,10 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
             <div className={s.stat}><div className={s.statK}>Checkpoints</div><div className={s.statV}>{curDone} <small>/ {curTotal}</small></div></div>
             <div className={s.stat}><div className={s.statK}>Constellation</div><div className={s.statV} style={{ fontSize: 18 }}>{CONSTELLATION[cur.month] || cur.theme}</div></div>
           </div>
+
+          <div className={s.sec}><h3>More</h3></div>
+          <button className={s.moreRow} onClick={() => setFinancesOpen(true)}>Finances <span>₹{balance.toFixed(0)} ›</span></button>
+          <a className={s.moreRow} href="/?classic=1">Calendar, Timetable &amp; more <span>Classic view ›</span></a>
 
           {isNativeApp() && (
             <div className={s.lockSec}>
@@ -268,10 +331,9 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
         <div className={s.focus}>
           <canvas ref={apRef} className={s.approach} />
           <div className={s.fc}>
-            <div className={s.fDest}>Approaching checkpoint</div>
-            <div className={s.fDestN}>{nextIdx >= 0 ? nextCheckpoint : "Free flight"}</div>
+            <div className={s.fDest}>{pomo.mode === "work" ? "Deep focus" : pomo.mode === "break" ? "Short break" : "Long break"}</div>
             <div className={s.fClock}>{mm}:{ss}</div>
-            <div className={s.fMode}>{pomo.mode === "work" ? "Focus burn" : pomo.mode === "break" ? "Short break" : "Long break"} · {pomo.isRunning ? "engines on" : "idle"}</div>
+            <div className={s.fMode}>{pomo.isRunning ? "drifting through deep space" : "ready to launch"}</div>
             <div className={s.fBtns}>
               <button className={s.fBtn} onClick={pomo.reset}>Reset</button>
               <button className={`${s.fBtn} ${s.fBtnPrimary}`} onClick={pomo.toggleRunning}>{pomo.isRunning ? "Pause" : "Launch"}</button>
@@ -280,8 +342,14 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
             {pomo.mode === "work" && isNativeApp() && (
               lockEnabled && lockApps.length > 0
                 ? (pomo.isRunning && <div className={s.fLock}>◆ distractions locked ◆</div>)
-                : <button className={s.recheck} style={{ marginTop: 24 }} onClick={() => goTab("you")}>Set up Focus Lock in “You” →</button>
+                : <button className={s.recheck} style={{ marginTop: 22 }} onClick={() => goTab("you")}>Set up Focus Lock in “You” →</button>
             )}
+            <div className={s.fStats}>
+              <div><b>{pomo.sessionsToday}</b><span>sessions</span></div>
+              <div><b>{focusStr}</b><span>focus</span></div>
+              <div><b>{breakStr}</b><span>breaks</span></div>
+            </div>
+            {justArrived && <div className={s.fArrived}>✦ Arrived — session logged</div>}
           </div>
         </div>
       )}
@@ -319,10 +387,54 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
         );
       })()}
 
+      {/* ============ FINANCES POPUP ============ */}
+      {financesOpen && (
+        <div className={s.modal}>
+          <div className={s.modalHead}>
+            <div className={s.modalTitle}>Finances<small>₹{balance.toFixed(0)} balance</small></div>
+            <button className={s.modalDone} onClick={() => setFinancesOpen(false)}>Done</button>
+          </div>
+          <div className={s.modalBody}>
+            <div className={s.finCard} style={{ marginTop: 0 }}>
+              <div><div className={s.finK}>Income</div><div className={s.finV} style={{ color: "var(--ok)" }}>₹{totalIncome.toFixed(0)}</div></div>
+              <div><div className={s.finK}>Spent</div><div className={s.finV} style={{ color: "var(--red)" }}>₹{totalSpent.toFixed(0)}</div></div>
+              <div><div className={s.finK}>Balance</div><div className={s.finV}>₹{balance.toFixed(0)}</div></div>
+            </div>
+            <div className={s.finForm}>
+              <div className={s.finToggle}>
+                <button className={finType === "expense" ? s.finTogOn : ""} onClick={() => setFinType("expense")}>Expense</button>
+                <button className={finType === "income" ? s.finTogOn : ""} onClick={() => setFinType("income")}>Income</button>
+              </div>
+              <input className={s.appSearch} value={finTitle} onChange={(e) => setFinTitle(e.target.value)} placeholder={finType === "expense" ? "What did you spend on?" : "Income source"} />
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <input className={s.appSearch} style={{ marginTop: 0, flex: 1 }} value={finAmount} onChange={(e) => setFinAmount(e.target.value)} type="number" placeholder="Amount ₹" />
+                <button className={s.modalDone} onClick={addFinance}>Add</button>
+              </div>
+            </div>
+            <div className={s.sec}><h3>Recent</h3></div>
+            {recentFinance.length === 0 ? <p className={s.appEmpty}>No transactions yet.</p> : (
+              <div className={s.modalList}>
+                {recentFinance.map((item) => (
+                  <div key={`${item.kind}-${item.id}`} className={s.finRow}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className={s.pT}>{item.title}</div>
+                      <div className={s.pSub}>{format(new Date(item.date.replace(/-/g, "/")), "dd MMM")}</div>
+                    </div>
+                    <div style={{ fontFamily: "var(--fontM)", fontWeight: 700, fontSize: 13, color: item.kind === "income" ? "var(--ok)" : "var(--red)" }}>
+                      {item.kind === "income" ? "+" : "-"}₹{item.amount.toFixed(0)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ============ NAV ============ */}
       <nav className={s.nav}>
         <button className={`${s.navBtn} ${tab === "pass" && !focusOpen ? s.navOn : ""}`} onClick={() => goTab("pass")}>
-          <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5" /><path d="M6 9.5V20h12V9.5" /></svg>Pass
+          <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5" /><path d="M6 9.5V20h12V9.5" /></svg>Home
         </button>
         <button className={`${s.navBtn} ${tab === "chart" && !focusOpen ? s.navOn : ""}`} onClick={() => goTab("chart")}>
           <svg viewBox="0 0 24 24"><path d="M5 19 9 8l5 6 3-9 2 5" /><circle cx="5" cy="19" r="1.3" fill="currentColor" stroke="none" /><circle cx="9" cy="8" r="1.3" fill="currentColor" stroke="none" /><circle cx="14" cy="14" r="1.3" fill="currentColor" stroke="none" /><circle cx="17" cy="5" r="1.3" fill="currentColor" stroke="none" /></svg>Chart
