@@ -214,6 +214,7 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   }, [pomo.sessionsToday, focusOpen]);
 
   return (
+    <div className={s.shell}>
     <div className={s.root}>
       <canvas ref={skyRef} className={s.stars} />
 
@@ -497,6 +498,7 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
           <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5" /></svg>You
         </button>
       </nav>
+    </div>
     </div>
   );
 }

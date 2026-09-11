@@ -1,13 +1,44 @@
-.root{
+.shell{
   --bg:#08090C; --surface:#131519; --surface2:#1A1D22;
   --line:#292D34; --lineSoft:#1C2026;
   --text:#F3F4F6; --muted:#989CA5; --dim:#5B5F68; --live:#FFFFFF;
   --cyan:#46E0D0; --violet:#9B7BFF; --ok:#7CE7A6; --red:#FF7E82;
   --fontD:"Archivo","Helvetica Neue",system-ui,sans-serif;
   --fontM:"Space Mono",ui-monospace,monospace;
-  position:fixed; inset:0; background:var(--bg); color:var(--text);
+  position:fixed; inset:0; background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+}
+.root{
+  position:absolute; inset:0; background:var(--bg); color:var(--text);
   font-family:var(--fontD); display:flex; flex-direction:column;
-  overflow:hidden; -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+/* ---- desktop / wide web: float the app as a device frame in space ---- */
+@media (min-width:760px){
+  .shell{
+    display:flex; align-items:center; justify-content:center;
+    background:
+      radial-gradient(90% 70% at 50% -10%, rgba(155,123,255,.06), transparent 60%),
+      radial-gradient(120% 120% at 50% 8%, #0e1119 0%, #08090C 52%, #050608 100%);
+  }
+  .root{
+    position:relative; inset:auto;
+    width:min(430px, 96vw);
+    height:min(896px, calc(100vh - 40px));
+    border:1px solid var(--line);
+    border-radius:36px;
+    box-shadow:0 40px 120px rgba(0,0,0,.65), 0 0 0 6px rgba(255,255,255,.015);
+  }
+  .shell::before{
+    content:"ORBIT"; position:fixed; left:34px; bottom:28px;
+    font-family:var(--fontM); font-size:11px; letter-spacing:5px;
+    color:rgba(255,255,255,.16); pointer-events:none;
+  }
+  .shell::after{
+    content:"FLIGHT DECK / WEB"; position:fixed; right:34px; bottom:28px;
+    font-family:var(--fontM); font-size:11px; letter-spacing:3px;
+    color:rgba(255,255,255,.10); pointer-events:none;
+  }
 }
 .stars{position:absolute;top:0;left:0;width:100%;height:100%;display:block;z-index:0;}
 .view{position:absolute;inset:0;bottom:76px;overflow-y:auto;overflow-x:hidden;z-index:1;
