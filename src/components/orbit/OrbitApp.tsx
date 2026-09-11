@@ -7,6 +7,8 @@ import {
   type GoalCompletion, type UserSession, type Expense, type Income,
 } from "@/lib/api";
 import SprintPlan from "./SprintPlan";
+import OrbitTimetable from "./OrbitTimetable";
+import OrbitCalendar from "./OrbitCalendar";
 import { usePomodoroContext } from "@/lib/PomodoroContext";
 import {
   isNativeApp, BLOCKABLE_APPS, getLockEnabled, setLockEnabled,
@@ -26,6 +28,11 @@ const CONSTELLATION: Record<string, string> = {
   // other months (outside the sprint) still map to a drawable shape
   March: "Leo", April: "Pegasus", May: "Cygnus", June: "Orion", July: "Gemini", August: "Scorpius",
 };
+
+const EXP_CATS = [
+  { key: "food", label: "Food" }, { key: "shopping", label: "Shopping" }, { key: "bills", label: "Bills" },
+  { key: "travel", label: "Travel" }, { key: "entertainment", label: "Fun" }, { key: "other", label: "Other" },
+];
 
 type Tab = "pass" | "chart" | "tasks" | "you";
 type CkStatus = "done" | "current" | "next";
@@ -47,8 +54,13 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [financesOpen, setFinancesOpen] = useState(false);
+  const [timetableOpen, setTimetableOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const reloadGoals = useCallback(() => { fetchGoals().then(setGoals); }, []);
-  const reloadFinance = useCallback(() => { fetchExpenses().then(setExpenses); fetchIncomes().then(setIncomes); }, []);
+  const reloadFinance = useCallback(() => {
+    const m = format(new Date(), "yyyy-MM"); // current month only
+    fetchExpenses(m).then(setExpenses); fetchIncomes(m).then(setIncomes);
+  }, []);
   useEffect(() => { reloadGoals(); reloadFinance(); }, [reloadGoals, reloadFinance]);
 
   const totalIncome = incomes.reduce((a, i) => a + i.amount, 0);
@@ -63,17 +75,21 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   const [finType, setFinType] = useState<"expense" | "income">("expense");
   const [finTitle, setFinTitle] = useState("");
   const [finAmount, setFinAmount] = useState("");
+  const [finCat, setFinCat] = useState("food");
   const addFinance = async () => {
     const amt = parseFloat(finAmount);
     if (!finTitle.trim() || !amt) return;
-    if (finType === "expense") await createExpense({ title: finTitle.trim(), amount: amt, date: todayISO, category: "other" });
+    if (finType === "expense") await createExpense({ title: finTitle.trim(), amount: amt, date: todayISO, category: finCat });
     else await createIncome({ title: finTitle.trim(), amount: amt, date: todayISO });
     setFinTitle(""); setFinAmount(""); reloadFinance();
   };
   const recentFinance = [
     ...expenses.map((e) => ({ ...e, kind: "expense" as const })),
     ...incomes.map((i) => ({ ...i, kind: "income" as const })),
-  ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
+  ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20);
+  const byCategory = EXP_CATS.map((c) => ({
+    ...c, amount: expenses.filter((e) => e.category === c.key).reduce((a, e) => a + e.amount, 0),
+  })).filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount);
 
   // ---- focus-lock settings ----
   const [lockEnabled, setLockEnabledS] = useState(false);
@@ -259,12 +275,12 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
             </>
           )}
 
-          <div className={s.sec}><h3>Finances</h3><button className={s.n} style={{ background: "none", border: "none", cursor: "pointer" }} onClick={() => setFinancesOpen(true)}>Manage ›</button></div>
-          <div className={s.finCard}>
+          <div className={s.sec}><h3>Finances · {format(now, "MMMM")}</h3><button className={s.n} style={{ background: "none", border: "none", cursor: "pointer" }} onClick={() => setFinancesOpen(true)}>Manage ›</button></div>
+          <button className={s.finCard} style={{ width: "100%", cursor: "pointer" }} onClick={() => setFinancesOpen(true)}>
             <div><div className={s.finK}>Income</div><div className={s.finV} style={{ color: "var(--ok)" }}>₹{totalIncome.toFixed(0)}</div></div>
             <div><div className={s.finK}>Spent</div><div className={s.finV} style={{ color: "var(--red)" }}>₹{totalSpent.toFixed(0)}</div></div>
             <div><div className={s.finK}>Balance</div><div className={s.finV}>₹{balance.toFixed(0)}</div></div>
-          </div>
+          </button>
         </div>
       )}
 
@@ -291,7 +307,9 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
 
           <div className={s.sec}><h3>More</h3></div>
           <button className={s.moreRow} onClick={() => setFinancesOpen(true)}>Finances <span>₹{balance.toFixed(0)} ›</span></button>
-          <a className={s.moreRow} href="/?classic=1">Calendar, Timetable &amp; more <span>Classic view ›</span></a>
+          <button className={s.moreRow} onClick={() => setCalendarOpen(true)}>Calendar <span>›</span></button>
+          <button className={s.moreRow} onClick={() => setTimetableOpen(true)}>Timetable <span>›</span></button>
+          <a className={s.moreRow} href="/?classic=1" style={{ opacity: 0.6 }}>Classic tracker <span>›</span></a>
 
           {isNativeApp() && (
             <div className={s.lockSec}>
@@ -391,7 +409,7 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
       {financesOpen && (
         <div className={s.modal}>
           <div className={s.modalHead}>
-            <div className={s.modalTitle}>Finances<small>₹{balance.toFixed(0)} balance</small></div>
+            <div className={s.modalTitle}>Finances<small>{format(now, "MMMM yyyy")}</small></div>
             <button className={s.modalDone} onClick={() => setFinancesOpen(false)}>Done</button>
           </div>
           <div className={s.modalBody}>
@@ -400,12 +418,39 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
               <div><div className={s.finK}>Spent</div><div className={s.finV} style={{ color: "var(--red)" }}>₹{totalSpent.toFixed(0)}</div></div>
               <div><div className={s.finK}>Balance</div><div className={s.finV}>₹{balance.toFixed(0)}</div></div>
             </div>
+
+            {byCategory.length > 0 && (
+              <>
+                <div className={s.sec}><h3>Where it went</h3><span className={s.n}>₹{totalSpent.toFixed(0)}</span></div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+                  {byCategory.map((c) => {
+                    const pct = totalSpent ? Math.round((c.amount / totalSpent) * 100) : 0;
+                    return (
+                      <div key={c.key}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
+                          <span>{c.label}</span><span style={{ color: "var(--muted)", fontFamily: "var(--fontM)", fontSize: 11 }}>₹{c.amount.toFixed(0)} · {pct}%</span>
+                        </div>
+                        <div className={s.mprogBar}><i style={{ width: `${pct}%` }} /></div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
             <div className={s.finForm}>
               <div className={s.finToggle}>
                 <button className={finType === "expense" ? s.finTogOn : ""} onClick={() => setFinType("expense")}>Expense</button>
                 <button className={finType === "income" ? s.finTogOn : ""} onClick={() => setFinType("income")}>Income</button>
               </div>
               <input className={s.appSearch} value={finTitle} onChange={(e) => setFinTitle(e.target.value)} placeholder={finType === "expense" ? "What did you spend on?" : "Income source"} />
+              {finType === "expense" && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                  {EXP_CATS.map((c) => (
+                    <button key={c.key} className={`${s.chip} ${finCat === c.key ? s.chipOn : ""}`} style={{ flex: "0 0 auto", padding: "7px 11px" }} onClick={() => setFinCat(c.key)}>{c.label}</button>
+                  ))}
+                </div>
+              )}
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 <input className={s.appSearch} style={{ marginTop: 0, flex: 1 }} value={finAmount} onChange={(e) => setFinAmount(e.target.value)} type="number" placeholder="Amount ₹" />
                 <button className={s.modalDone} onClick={addFinance}>Add</button>
@@ -418,7 +463,7 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
                   <div key={`${item.kind}-${item.id}`} className={s.finRow}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className={s.pT}>{item.title}</div>
-                      <div className={s.pSub}>{format(new Date(item.date.replace(/-/g, "/")), "dd MMM")}</div>
+                      <div className={s.pSub}>{format(new Date(item.date.replace(/-/g, "/")), "dd MMM")}{item.kind === "expense" && item.category ? ` · ${EXP_CATS.find((c) => c.key === item.category)?.label || item.category}` : ""}</div>
                     </div>
                     <div style={{ fontFamily: "var(--fontM)", fontWeight: 700, fontSize: 13, color: item.kind === "income" ? "var(--ok)" : "var(--red)" }}>
                       {item.kind === "income" ? "+" : "-"}₹{item.amount.toFixed(0)}
@@ -430,6 +475,9 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
           </div>
         </div>
       )}
+
+      {timetableOpen && <OrbitTimetable onClose={() => setTimetableOpen(false)} />}
+      {calendarOpen && <OrbitCalendar onClose={() => setCalendarOpen(false)} />}
 
       {/* ============ NAV ============ */}
       <nav className={s.nav}>

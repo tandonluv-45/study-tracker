@@ -193,6 +193,28 @@
 .moreRow{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border:1px solid var(--lineSoft);border-radius:14px;margin-top:10px;color:var(--text);background:none;width:100%;cursor:pointer;font-size:14px;text-decoration:none;}
 .moreRow span{font-family:var(--fontM);font-size:11px;color:var(--dim);}
 
+/* timetable */
+.field{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--text);font-size:13px;font-family:var(--fontD);margin-top:8px;}
+.field option{background:var(--surface);color:var(--text);}
+.ttDay{margin-top:18px;}
+.ttDayName{font-family:var(--fontM);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.ttSlot{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--lineSoft);border-radius:12px;margin-bottom:8px;}
+.ttTime{font-family:var(--fontM);font-size:11px;color:var(--muted);flex-shrink:0;width:92px;}
+.ttSub{flex:1;min-width:0;font-size:14px;font-weight:500;}
+.ttSub small{display:block;font-family:var(--fontM);font-size:10px;color:var(--dim);margin-top:2px;}
+.ttType{font-family:var(--fontM);font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:20px;flex-shrink:0;}
+.ttDel{background:none;border:none;color:var(--dim);cursor:pointer;font-size:20px;flex-shrink:0;line-height:1;}
+
+/* calendar */
+.calHead{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+.calNav{background:none;border:1px solid var(--line);border-radius:10px;color:var(--text);width:36px;height:36px;cursor:pointer;font-size:18px;line-height:1;}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:14px;}
+.calDow{text-align:center;font-family:var(--fontM);font-size:9px;color:var(--dim);text-transform:uppercase;padding:4px 0;}
+.calCell{aspect-ratio:1;border-radius:10px;border:1px solid transparent;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:var(--text);background:none;position:relative;}
+.calCellMuted{color:var(--dim);}
+.calCellSel{border-color:var(--text);background:rgba(255,255,255,.06);}
+.calDot{width:4px;height:4px;border-radius:50%;background:var(--ok);position:absolute;bottom:6px;left:50%;transform:translateX(-50%);}
+
 /* app picker popup */
 .modal{position:absolute;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;animation:modalIn .25s ease;}
 @keyframes modalIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
