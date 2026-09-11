@@ -50,6 +50,7 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
   const [perms, setPerms] = useState({ usage: false, overlay: false });
   const [installedApps, setInstalledApps] = useState<InstalledApp[]>([]);
   const [appQuery, setAppQuery] = useState("");
+  const [appPickerOpen, setAppPickerOpen] = useState(false);
   useEffect(() => {
     if (!isNativeApp()) return;
     setLockEnabledS(getLockEnabled());
@@ -252,34 +253,9 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
                       <button className={s.recheck} onClick={() => getPermissions().then(setPerms)}>Re-check permissions</button>
                     </div>
                   )}
-                  {(() => {
-                    const options = installedApps.length ? installedApps : BLOCKABLE_APPS;
-                    const q = appQuery.trim().toLowerCase();
-                    const filtered = q ? options.filter((a) => a.label.toLowerCase().includes(q)) : options;
-                    return (
-                      <>
-                        <div className={s.lockDesc} style={{ marginTop: 14 }}>Apps to block · {lockApps.length} selected</div>
-                        <input className={s.appSearch} value={appQuery} onChange={(e) => setAppQuery(e.target.value)} placeholder="Search your apps…" />
-                        {filtered.length === 0 ? (
-                          <p className={s.appEmpty}>
-                            {installedApps.length ? "No apps match." : "Loading your apps… if this stays empty, reinstall the latest app build to enable app detection."}
-                          </p>
-                        ) : (
-                          <div className={s.appList}>
-                            {filtered.map((a) => {
-                              const on = lockApps.includes(a.pkg);
-                              return (
-                                <button key={a.pkg} className={`${s.chip} ${on ? s.chipOn : ""}`} onClick={() => toggleLockApp(a.pkg)}>
-                                  <span className={`${s.chipBox} ${on ? s.chipBoxOn : ""}`}>{on && <Check />}</span>
-                                  <span>{a.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
+                  <button className={s.permBtn} style={{ marginTop: 14 }} onClick={() => setAppPickerOpen(true)}>
+                    Blocked apps <span className={s.permGrant}>{lockApps.length} selected  ›</span>
+                  </button>
                 </>
               )}
             </div>
@@ -309,6 +285,39 @@ export default function OrbitApp({ user }: { user: UserSession | null }) {
           </div>
         </div>
       )}
+
+      {/* ============ APP PICKER POPUP ============ */}
+      {appPickerOpen && (() => {
+        const options = installedApps.length ? installedApps : BLOCKABLE_APPS;
+        const q = appQuery.trim().toLowerCase();
+        const filtered = q ? options.filter((a) => a.label.toLowerCase().includes(q)) : options;
+        return (
+          <div className={s.modal}>
+            <div className={s.modalHead}>
+              <div className={s.modalTitle}>Block apps<small>{lockApps.length} selected</small></div>
+              <button className={s.modalDone} onClick={() => setAppPickerOpen(false)}>Done</button>
+            </div>
+            <div className={s.modalBody}>
+              <input className={s.appSearch} style={{ marginTop: 0 }} value={appQuery} onChange={(e) => setAppQuery(e.target.value)} placeholder="Search your apps…" />
+              {filtered.length === 0 ? (
+                <p className={s.appEmpty}>{installedApps.length ? "No apps match." : "Loading your apps… if this stays empty, reinstall the latest app build."}</p>
+              ) : (
+                <div className={s.modalList}>
+                  {filtered.map((a) => {
+                    const on = lockApps.includes(a.pkg);
+                    return (
+                      <button key={a.pkg} className={`${s.appRow} ${on ? s.appRowOn : ""}`} onClick={() => toggleLockApp(a.pkg)}>
+                        <span className={`${s.chipBox} ${on ? s.chipBoxOn : ""}`}>{on && <Check />}</span>
+                        <span>{a.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ============ NAV ============ */}
       <nav className={s.nav}>
@@ -367,26 +376,17 @@ function ConstellationSvg({ month, isDone, interactive, onStar }: {
       {decorative.map((p, j) => <circle key={`d${j}`} cx={p[0]} cy={p[1]} r={2.6} fill="#3a3f48" />)}
       {cp.map((p, i) => {
         const st = statusOf(i);
-        const above = p[1] > 44;
+        const r = interactive ? rOf[st] : rOf[st] * 0.85;
         return (
           <g key={i} onClick={() => interactive && onStar?.(i)} style={{ cursor: interactive ? "pointer" : "default" }}>
+            {interactive && <circle cx={p[0]} cy={p[1]} r={16} fill="transparent" />}
             {st === "current" && <circle cx={p[0]} cy={p[1]} r={9} fill="none" stroke="#fff" strokeWidth={1} opacity={0.5}><animate attributeName="r" values="9;15;9" dur="2.6s" repeatCount="indefinite" /><animate attributeName="opacity" values=".55;0;.55" dur="2.6s" repeatCount="indefinite" /></circle>}
-            <circle cx={p[0]} cy={p[1]} r={rOf[st]} fill={color[st]} />
-            {interactive && (
-              <text className={s.clabel} x={p[0]} y={above ? p[1] - 12 : p[1] + 17} textAnchor="middle"
-                fill={st === "current" ? "#F3F4F6" : st === "done" ? "#9096a0" : "#5b616c"} fontWeight={st === "current" ? 700 : 400}>
-                {shortLabel(month.goals[i])}
-              </text>
-            )}
+            <circle cx={p[0]} cy={p[1]} r={r} fill={color[st]} />
           </g>
         );
       })}
     </svg>
   );
-}
-
-function shortLabel(goal: string): string {
-  return goal.replace(/^(Complete|Start|Watch|Build and DEPLOY|Build|Scaffold)\s+/i, "").split(/[(,]/)[0].trim().slice(0, 22);
 }
 
 function ChartView({ chartIdx, setChartIdx, isDone, onToggle }: {
