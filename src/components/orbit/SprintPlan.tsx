@@ -24,6 +24,7 @@ export default function SprintPlan() {
   const [state, setState] = useState<SprintState>(DEFAULT_STATE);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const today = iso(new Date());
+  const [viewDay, setViewDay] = useState(today);
 
   useEffect(() => { fetchSprintState().then((st) => setState({ ...DEFAULT_STATE, ...st })); }, []);
 
@@ -44,7 +45,7 @@ export default function SprintPlan() {
     patch({ overrides: { ...state.overrides, [id]: addDays(cur, 1) } });
   };
   const toggleDayOff = () => {
-    const off = state.daysOff.includes(today) ? state.daysOff.filter((d) => d !== today) : [...state.daysOff, today];
+    const off = state.daysOff.includes(viewDay) ? state.daysOff.filter((d) => d !== viewDay) : [...state.daysOff, viewDay];
     patch({ daysOff: off });
   };
 
@@ -60,14 +61,20 @@ export default function SprintPlan() {
     return map;
   }, []);
 
-  const todayItems = sched.byDate.get(today) || [];
-  // If nothing today (e.g. before the sprint starts), show the next scheduled day.
+  const dayItems = sched.byDate.get(viewDay) || [];
+  // If nothing on the viewed day (and it's today/future), point to the next scheduled day.
   let nextDay = "";
-  if (todayItems.length === 0) {
-    for (const d of [...sched.byDate.keys()].sort()) { if (d >= today) { nextDay = d; break; } }
+  if (dayItems.length === 0 && viewDay >= today) {
+    for (const d of [...sched.byDate.keys()].sort()) { if (d >= viewDay) { nextDay = d; break; } }
   }
   const upcoming = nextDay ? sched.byDate.get(nextDay) || [] : [];
-  const dayOffOn = state.daysOff.includes(today);
+  const dayOffOn = state.daysOff.includes(viewDay);
+  const relLabel =
+    viewDay === today ? "Today"
+    : viewDay === addDays(today, -1) ? "Yesterday"
+    : viewDay === addDays(today, 1) ? "Tomorrow"
+    : format(new Date(viewDay.replace(/-/g, "/")), "EEEE");
+  const dayDone = dayItems.filter((it) => isDone(statusOf(it.id))).length;
 
   const Row = ({ it }: { it: SprintItem }) => {
     const st = statusOf(it.id);
@@ -90,10 +97,20 @@ export default function SprintPlan() {
     <div className={s.view}>
       <div className={s.planTop}>
         <div>
-          <div className={s.label}>Flight plan · {format(new Date(), "EEE dd MMM")}</div>
-          <h2 className={s.h2} style={{ marginTop: 6 }}>Today</h2>
+          <div className={s.label}>Flight plan</div>
+          <h2 className={s.h2} style={{ marginTop: 6 }}>{relLabel}</h2>
         </div>
         <button className={`${s.dayoff} ${dayOffOn ? s.dayoffOn : ""}`} onClick={toggleDayOff}>{dayOffOn ? "Day off ✓" : "Day off"}</button>
+      </div>
+
+      <div className={s.dayNav}>
+        <button className={s.calNav} onClick={() => setViewDay(addDays(viewDay, -1))} aria-label="Previous day">‹</button>
+        <div className={s.dayNavMid}>
+          <span className={s.dayNavDate}>{format(new Date(viewDay.replace(/-/g, "/")), "EEE dd MMM yyyy")}</span>
+          {viewDay !== today && <button className={s.dayToday} onClick={() => setViewDay(today)}>Jump to today</button>}
+          {dayItems.length > 0 && <span className={s.dayNavCount}>{dayDone}/{dayItems.length} cleared</span>}
+        </div>
+        <button className={s.calNav} onClick={() => setViewDay(addDays(viewDay, 1))} aria-label="Next day">›</button>
       </div>
 
       <div className={s.mprog}>
@@ -101,15 +118,17 @@ export default function SprintPlan() {
         <div className={s.mprogBar}><i style={{ width: `${(totals.solved / totals.total) * 100}%` }} /></div>
       </div>
 
-      {todayItems.length > 0 ? (
+      {dayItems.length > 0 ? (
         <div className={s.planGroup} style={{ marginTop: 16 }}>
-          {todayItems.map((it) => <Row key={it.id} it={it} />)}
+          {dayItems.map((it) => <Row key={it.id} it={it} />)}
         </div>
       ) : (
         <div style={{ marginTop: 16 }}>
-          <p className={s.pLead}>{dayOffOn ? "Day off — enjoy it. The timeline shifted forward." : "Nothing scheduled today."}
-            {nextDay && ` Next up: ${format(new Date(nextDay.replace(/-/g, "/")), "EEE dd MMM")}.`}</p>
-          {upcoming.length > 0 && (
+          <p className={s.pLead}>{dayOffOn ? "Day off — the timeline shifts forward around it."
+            : viewDay < today ? "Nothing was scheduled on this day."
+            : "Nothing scheduled."}
+            {nextDay && nextDay !== viewDay && ` Next up: ${format(new Date(nextDay.replace(/-/g, "/")), "EEE dd MMM")}.`}</p>
+          {upcoming.length > 0 && nextDay !== viewDay && (
             <div className={s.planGroup} style={{ marginTop: 12 }}>{upcoming.map((it) => <Row key={it.id} it={it} />)}</div>
           )}
         </div>

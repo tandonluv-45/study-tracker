@@ -141,6 +141,12 @@
 /* sprint plan */
 .planTop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
 .dayoff{font-family:var(--fontM);font-size:10px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--line);border-radius:20px;padding:9px 13px;color:var(--muted);background:none;cursor:pointer;flex-shrink:0;margin-top:6px;}
+.dayNav{display:flex;align-items:center;gap:12px;margin-top:16px;}
+.dayNavMid{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.dayNavDate{font-family:var(--fontD);font-weight:600;font-size:15px;}
+.dayNavCount{font-family:var(--fontM);font-size:10px;letter-spacing:.5px;color:var(--dim);}
+.dayToday{background:none;border:none;color:var(--muted);font-family:var(--fontM);font-size:10px;letter-spacing:.5px;text-decoration:underline;cursor:pointer;padding:0;}
+.dayToday:hover{color:var(--text);}
 .dayoffOn{border-color:var(--red);color:var(--red);}
 .planGroup{margin-top:10px;border:1px solid var(--lineSoft);border-radius:14px;overflow:hidden;}
 .planGH{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;cursor:pointer;background:var(--surface);width:100%;border:none;color:var(--text);text-align:left;}
